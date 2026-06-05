@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>针灸穴位部位记忆训练系统</title>
+    <style>
+        :root {
+            --primary-color: #2c6e49;
+            --primary-light: #4c9a6a;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --success-color: #2a9d8f;
+            --error-color: #e63946;
+        }
+
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        h1, h2, h3 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Tab 样式 */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            color: #666;
+            font-weight: bold;
+        }
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            margin-bottom: -2px;
+        }
+
+        /* 配置区域 */
+        .config-section { margin-bottom: 20px; }
+        
+        .meridian-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .meridian-item {
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+        .meridian-item input { margin-right: 8px; }
+
+        .btn-group {
+            margin: 15px 0;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            resize: vertical;
+            font-family: monospace;
+            box-sizing: border-box;
+        }
+
+        /* 按钮基本样式 */
+        button.action-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button.action-btn:hover { background-color: var(--primary-light); }
+        
+        button.sub-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 13px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* 答题区域 */
+        .progress-bar {
+            text-align: right;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .question-box {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f7f4;
+            border-radius: 8px;
+            border-left: 5px solid var(--primary-color);
+        }
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .option-btn {
+            background-color: #fff;
+            border: 2px solid #e0e0e0;
+            padding: 14px 20px;
+            text-align: left;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        .option-btn:hover:not(:disabled) {
+            background-color: #f8f9fa;
+            border-color: var(--primary-light);
+        }
+        .option-btn .prefix {
+            font-weight: bold;
+            margin-right: 15px;
+            color: var(--primary-color);
+        }
+        
+        /* 选项对错状态 */
+        .option-btn.correct {
+            background-color: #e8f5e9 !important;
+            border-color: var(--success-color) !important;
+            color: #1b5e20;
+        }
+        .option-btn.wrong {
+            background-color: #ffebee !important;
+            border-color: var(--error-color) !important;
+            color: #c62828;
+        }
+
+        /* 解析面板 */
+        .explain-panel {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #e9ecef;
+            border-top: 4px solid #6c757d;
+        }
+        .explain-panel.correct-style {
+            background-color: #e8f5e9;
+            border-top-color: var(--success-color);
+        }
+        .explain-panel.wrong-style {
+            background-color: #ffebee;
+            border-top-color: var(--error-color);
+        }
+        .explain-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        /* 结果区域 */
+        .result-card {
+            text-align: center;
+            padding: 20px;
+        }
+        .score-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin: 20px 0;
+        }
+        .wrong-list {
+            text-align: left;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .wrong-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #eee;
+        }
+        .wrong-item .w-name {
+            font-weight: bold;
+            color: var(--error-color);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>☯ 穴位所在部位记忆训练</h1>
+
+    <div id="setup-view">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('meridian')">按预设经络选择</button>
+            <button class="tab-btn" onclick="switchTab('custom')">自定义输入穴位</button>
+        </div>
+
+        <div id="meridian-panel" class="config-section">
+            <div class="btn-group">
+                <button class="sub-btn" onclick="toggleAllMeridians(true)">全选</button>
+                <button class="sub-btn" onclick="toggleAllMeridians(false)">全不选</button>
+            </div>
+            <div class="meridian-grid" id="meridian-checkboxes">
+                </div>
+        </div>
+
+        <div id="custom-panel" class="config-section hidden">
+            <p style="font-size: 14px; color: #666;">请在下方粘贴您的穴位数据（格式：穴位名[空格/制表符]完整描述）：</p>
+            <textarea id="custom-input" placeholder="例如：&#10;尺泽&#9;在肘前侧，肘横纹上，肱二头肌腱桡侧缘凹陷中&#10;孔最&#9;在前臂前外侧，腕掌侧远端横纹上7寸..."></textarea>
+        </div>
+
+        <div class="btn-group" style="margin-top: 30px;">
+            <button class="action-btn" onclick="startQuiz(false)">开始测试 🚀</button>
+        </div>
+    </div>
+
+    <div id="quiz-view" class="hidden">
+        <div class="progress-bar">
+            题目：<span id="current-q-index">0</span> / <span id="total-q-count">0</span>
+        </div>
+        <div class="question-box">
+            题干穴位：<span id="question-title">--</span>
+        </div>
+        <div class="options-container" id="options-box">
+            </div>
+
+        <div id="explain-box" class="explain-panel hidden">
+            <div class="explain-title" id="explain-result">结果</div>
+            <div id="explain-content">完整位置信息</div>
+        </div>
+
+        <div class="btn-group" style="margin-top: 25px;">
+            <button id="next-btn" class="action-btn" onclick="nextQuestion()" disabled>请先选择答案</button>
+        </div>
+    </div>
+
+    <div id="result-view" class="hidden">
+        <div class="result-card">
+            <h2>测试完成！</h2>
+            <div class="score-display" id="score-text">0%</div>
+            <p id="stats-text">共答 0 题，做对 0 题，做错 0 题。</p>
+            
+            <div id="wrong-pool-zone" class="hidden">
+                <h3>❌ 错题回顾</h3>
+                <div class="wrong-list" id="wrong-list-box"></div>
+            </div>
+
+            <div class="btn-group" style="margin-top: 30px;">
+                <button class="action-btn" id="review-wrong-btn" onclick="startQuiz(true)">复习错题 🔄</button>
+                <button class="action-btn" style="background-color: #6c757d;" onclick="backToSetup()">返回主页 🏠</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. 预置的内置完整数据集
+    const PRESET_DATA = [
+        { name: "尺泽", desc: "在肘前侧，肘横纹上，肱二头肌腱桡侧缘凹陷中", meridian: "手太阴肺经" },
+        { name: "孔最", desc: "在前臂前外侧，腕掌侧远端横纹上7寸，尺泽与太渊连线上", meridian: "手太阴肺经" },
+        { name: "列缺", desc: "在前臂外侧，腕掌侧远端横纹上1.5寸，拇短伸肌腱与拇长展肌腱之间，拇长展肌腱沟的凹陷中", meridian: "手太阴肺经" },
+        { name: "鱼际", desc: "在手掌，第1掌骨桡侧中点赤白肉际处", meridian: "手太阴肺经" },
+        { name: "少商", desc: "在手指，拇指末节桡侧，指甲根角侧上方0.1寸", meridian: "手太阴肺经" },
+        { name: "合谷", desc: "在手背，第一掌骨和第二掌骨之间，约平第二掌骨桡侧的中点", meridian: "手阳明大肠经" },
+        { name: "手三里", desc: "在前臂后外侧，肘横纹下2寸，阳溪与曲池连线上", meridian: "手阳明大肠经" },
+        { name: "曲池", desc: "在肘外侧，尺泽与肱骨外上髁连线的中点处", meridian: "手阳明大肠经" },
+        { name: "肩髃", desc: "在肩带部，肩峰外侧缘前端与肱骨大结节两骨间凹陷中", meridian: "手阳明大肠经" },
+        { name: "迎香", desc: "在面部，鼻翼外缘中点旁，鼻唇沟中", meridian: "手阳明大肠经" },
+        { name: "地仓", desc: "在面部，口角旁开0.4寸", meridian: "足阳明胃经" },
+        { name: "下关", desc: "在面部，颧弓下缘中央与下颌切迹之间凹陷中", meridian: "足阳明胃经" },
+        { name: "头维", desc: "在头部，额角发际直上0.5寸，头正中线旁开4.5寸", meridian: "足阳明胃经" },
+        { name: "天枢", desc: "在上腹部，横平脐中，前正中线旁开2寸", meridian: "足阳明胃经" },
+        { name: "梁丘", desc: "在股前外侧，髌底上2寸，股外侧肌与股直肌肌腱之间", meridian: "足阳明胃经" },
+        { name: "足三里", desc: "在小腿外侧，犊鼻下3寸，犊鼻与解溪连线上", meridian: "足阳明胃经" },
+        { name: "上巨虚", desc: "在小腿外侧，犊鼻下6寸，犊鼻与解溪连线上", meridian: "足阳明胃经" },
+        { name: "条口", desc: "在小腿外侧，犊鼻下8寸，犊鼻与解溪连线上", meridian: "足阳明胃经" },
+        { name: "丰隆", desc: "在小腿外侧，外踝尖上8寸，胫骨前肌的外缘", meridian: "足阳明胃经" },
+        { name: "内庭", desc: "在足背，第2、3趾间，趾蹼缘后方赤白肉际处", meridian: "足阳明胃经" },
+        { name: "公孙", desc: "在足内侧，第1跖骨底的前下缘赤白肉际处", meridian: "足太阴脾经" },
+        { name: "三阴交", desc: "在小腿内侧，内踝尖上3寸，胫骨内侧缘后际", meridian: "足太阴脾经" },
+        { name: "地机", desc: "在小腿内侧，阴陵泉下3寸，胫骨内侧缘后际", meridian: "足太阴脾经" },
+        { name: "阴陵泉", desc: "在小腿内侧，胫骨内侧髁下缘与胫骨内侧缘之间的凹陷中", meridian: "足太阴脾经" },
+        { name: "血海", desc: "在股前内侧，髌底内侧端上2寸，股内侧肌隆起处", meridian: "足太阴脾经" },
+        { name: "大横", desc: "在上腹部，脐中旁开4寸", meridian: "足太阴脾经" },
+        { name: "通里", desc: "在前臂前内侧，腕掌侧远端横纹上1寸，尺侧腕屈肌腱的桡侧缘", meridian: "手少阴心经" },
+        { name: "神门", desc: "在腕前内侧，腕掌侧远端横纹尺侧端，尺侧腕屈肌腱的桡侧缘", meridian: "手少阴心经" },
+        { name: "少府", desc: "在手掌，横平第5掌指关节近端，第4、5掌骨之间", meridian: "手少阴心经" },
+        { name: "后溪", desc: "在手背，第5掌指关节尺侧近端赤白肉际凹陷中", meridian: "手太阳小肠经" },
+        { name: "养老", desc: "前臂后侧，腕背横纹上1寸，尺骨头桡侧凹陷中", meridian: "手太阳小肠经" },
+        { name: "天宗", desc: "在肩带部，肩胛冈中点与肩胛骨下角连线的上1/3与下2/3交点凹陷中", meridian: "手太阳小肠经" },
+        { name: "听宫", desc: "在面部，耳屏正中与下颌骨髁状突之间的凹陷中", meridian: "手太阳小肠经" },
+        { name: "攒竹", desc: "在面部，眉头凹陷中，额切迹处", meridian: "足太阳膀胱经" },
+        { name: "天柱", desc: "在颈后区，横平第2颈椎棘突上际，斜方肌外缘凹陷中", meridian: "足太阳膀胱经" },
+        { name: "肺俞", desc: "在背部，第3胸椎棘突下，后正中线旁开1.5寸", meridian: "足太阳膀胱经" },
+        { name: "膈俞", desc: "在背部，第7胸椎棘突下，后正中线旁开1.5寸", meridian: "足太阳膀胱经" },
+        { name: "胃俞", desc: "在背部，第12胸椎棘突下，后正中线旁开1.5寸", meridian: "足太阳膀胱经" },
+        { name: "肾俞", desc: "在腰部，第2腰椎棘突下，后正中线旁开1.5寸", meridian: "足太阳膀胱经" },
+        { name: "大肠俞", desc: "在腰部，第4腰椎棘突下，后正中线旁开1.5寸", meridian: "足太阳膀胱经" },
+        { name: "次髎", desc: "在骶区，正对第2骶后孔中", meridian: "足太阳膀胱经" },
+        { name: "委中", desc: "在膝后区，腘横纹中点", meridian: "足太阳膀胱经" },
+        { name: "膏肓", desc: "在背部，第4胸椎棘突下，后正中线旁开3寸", meridian: "足太阳膀胱经" },
+        { name: "秩边", desc: "在臀部，横平第4骶后孔，骶正中嵴旁开3寸", meridian: "足太阳膀胱经" },
+        { name: "承山", desc: "在小腿后侧，腓肠肌两肌腹与跟腱交角处", meridian: "足太阳膀胱经" },
+        { name: "昆仑", desc: "在踝后外侧，外踝尖与跟腱之间的凹陷中", meridian: "足太阳膀胱经" },
+        { name: "申脉", desc: "在足外侧，外踝尖直下，外踝下缘与跟骨之间凹陷中", meridian: "足太阳膀胱经" },
+        { name: "至阴", desc: "在足趾，小趾末节外侧，趾甲根角侧后方0.1寸", meridian: "足太阳膀胱经" },
+        { name: "涌泉", desc: "在足底，屈足卷趾时足心最凹陷中", meridian: "足少阴肾经" },
+        { name: "太溪", desc: "在踝后内侧，内踝尖与跟腱之间的凹陷中", meridian: "足少阴肾经" },
+        { name: "照海", desc: "在足内侧，内踝尖下1寸，内踝下缘边际凹陷中", meridian: "足少阴肾经" },
+        { name: "复溜", desc: "在小腿后内侧，内踝尖上2寸，跟腱前缘", meridian: "足少阴肾经" },
+        { name: "郄门", desc: "在前臂前区，腕掌侧远端横纹上5寸，掌长肌腱与桡侧腕屈肌腱之间", meridian: "手厥阴心包经" },
+        { name: "内关", desc: "在前臂前区，腕掌侧远端横纹上2寸，掌长肌腱与桡侧腕屈肌腱之间", meridian: "手厥阴心包经" },
+        { name: "大陵", desc: "在腕前区，腕掌侧远端横纹中，掌长肌腱与桡侧腕屈肌腱之间", meridian: "手厥阴心包经" },
+        { name: "中冲", desc: "在手指，中指末端最高点", meridian: "手厥阴心包经" },
+        { name: "中渚", desc: "在手背，第4、5掌骨间，第4掌指关节近端凹陷中", meridian: "手少阳三焦经" },
+        { name: "外关", desc: "在前臂后区，腕背侧远端横纹上2寸，尺骨与桡骨间隙中点", meridian: "手少阳三焦经" },
+        { name: "支沟", desc: "在前臂后区，腕背侧远端横纹上3寸，尺骨与桡骨间隙中点", meridian: "手少阳三焦经" },
+        { name: "翳风", desc: "在颈部，耳垂后方，乳突下端前方凹陷中", meridian: "手少阳三焦经" },
+        { name: "率谷", desc: "在头部，耳尖直上入发际1.5寸", meridian: "足少阳胆经" },
+        { name: "风池", desc: "在颈后区，枕骨之下，胸锁乳突肌上端与斜方肌上端之间的凹陷中", meridian: "足少阳胆经" },
+        { name: "肩井", desc: "在颈后部，第7颈椎棘突与肩峰最外侧点连线的中点", meridian: "足少阳胆经" },
+        { name: "环跳", desc: "在臀部，股骨大转子最凸点与骶管裂孔连线的外1/3与内2/3交点处", meridian: "足少阳胆经" },
+        { name: "阳陵泉", desc: "在小腿外侧，腓骨头前下方凹陷中", meridian: "足少阳胆经" },
+        { name: "悬钟", desc: "在小腿外侧，外踝尖上3寸，腓骨前缘", meridian: "足少阳胆经" },
+        { name: "丘墟", desc: "在踝前外侧，外踝的前下方，趾长伸肌腱的外侧凹陷中", meridian: "足少阳胆经" },
+        { name: "太冲", desc: "在足背，第1、2跖骨间，跖骨底结合部前方凹陷中，或触及动脉搏动处", meridian: "足厥阴肝经" },
+        { name: "蠡沟", desc: "在小腿前内侧，内踝尖上5寸，胫骨内侧面的中央", meridian: "足厥阴肝经" },
+        { name: "期门", desc: "在前胸部，第6肋间隙，前正中线旁开4寸", meridian: "足厥阴肝经" },
+        { name: "腰阳关", desc: "在腰部，第4腰椎棘突下凹陷中，后正中线上", meridian: "督脉" },
+        { name: "命门", desc: "在腰部，第2腰椎棘突下凹陷中，后正中线上", meridian: "督脉" },
+        { name: "大椎", desc: "在颈后部，第7颈椎棘突下凹陷中，后正中线上", meridian: "督脉" },
+        { name: "百会", desc: "在头部，前发际正中直上5寸", meridian: "督脉" },
+        { name: "神庭", desc: "在头部，前发际正中直上0.5寸", meridian: "督脉" },
+        { name: "水沟", desc: "在面部，人中沟的上1/3与中1/3交点处", meridian: "督脉" },
+        { name: "印堂", desc: "在头部，两眉毛内侧端中间的凹陷中", meridian: "督脉" },
+        { name: "中极", desc: "在下腹部，脐中下4寸，前正中线", meridian: "任脉" },
+        { name: "关元", desc: "在下腹部，脐中下3寸，前正中线", meridian: "任脉" },
+        { name: "气海", desc: "在下腹部，脐中下1.5寸，前正中线", meridian: "任脉" },
+        { name: "中脘", dbesc: "", desc: "在上腹部，脐中上4寸，前正中线", meridian: "任脉" },
+        { name: "膻中", desc: "在前胸部，横平第4肋间隙，前正中线上", meridian: "任脉" },
+        { name: "天突", desc: "在颈前部，胸骨上窝中央，前正中线", meridian: "任脉" },
+        { name: "四神聪", desc: "在头部，百会前后左右各旁开1寸，共4个腧穴", meridian: "经外奇穴" },
+        { name: "太阳", desc: "在头部，眉梢与目外眦之间，向后约一横指的凹陷中", meridian: "经外奇穴" },
+        { name: "定喘", desc: "在脊柱区，横平第7颈椎棘突下，后正中线旁开0.5寸", meridian: "经外奇穴" },
+        { name: "夹脊", desc: "在脊柱区，第1胸椎至第5腰椎棘突下两侧，后正中线旁开0.5寸，一侧17个腧穴", meridian: "经外奇穴" },
+        { name: "腰痛点", desc: "在手背，第2、3掌骨间及第4、5掌骨间，腕背侧远端横纹与掌指关节的中点处，一手2个腧穴", meridian: "经外奇穴" },
+        { name: "内膝眼", desc: "在膝部，髌韧带内侧凹陷处的中央", meridian: "经外奇穴" },
+        { name: "十宣", desc: "在手指，十指尖端，距指甲游离缘0.1寸(指寸)，左右共10个腧穴", meridian: "经外奇穴" }
+    ];
+
+    // 全局题库池
+    let GLOBAL_POOL = [];
+    // 当前测试题库
+    let quizPool = [];
+    let currentIndex = 0;
+    let score = 0;
+    let wrongPool = [];
+    let currentMode = 'meridian'; // 'meridian' 或 'custom'
+
+    // 初始化：提取“纯部位”并生成经络复选框
+    function init() {
+        // 预处理提取部位 (逗号前的部分)
+        PRESET_DATA.forEach(item => {
+            item.part = extractPart(item.desc);
+        });
+
+        // 提取所有独特的经络
+        const meridians = [...new Set(PRESET_DATA.map(item => item.meridian))];
+        const container = document.getElementById('meridian-checkboxes');
+        container.innerHTML = '';
+        
+        meridians.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'meridian-item';
+            div.innerHTML = `<label><input type="checkbox" name="meridian" value="${m}" checked> ${m}</label>`;
+            container.appendChild(div);
+        });
+        
+        GLOBAL_POOL = [...PRESET_DATA];
+    }
+
+    // 从完整描述中提取第一个逗号前的“纯部位”
+    function extractPart(desc) {
+        if (!desc) return "未知部位";
+        const commaIdx = desc.indexOf('，');
+        return commaIdx !== -1 ? desc.substring(0, commaIdx) : desc;
+    }
+
+    // 切换标签页
+    function switchTab(mode) {
+        currentMode = mode;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        if(mode === 'meridian') {
+            document.getElementById('meridian-panel').classList.remove('hidden');
+            document.getElementById('custom-panel').classList.add('hidden');
+        } else {
+            document.getElementById('meridian-panel').classList.add('hidden');
+            document.getElementById('custom-panel').classList.remove('hidden');
+        }
+    }
+
+    // 经络全选/全不选
+    function toggleAllMeridians(checked) {
+        document.querySelectorAll('input[name="meridian"]').forEach(cb => cb.checked = checked);
+    }
+
+    // 洗牌算法
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    // 开始测试
+    function startQuiz(isReviewWrong = false) {
+        if (isReviewWrong) {
+            // 复戏错题模式
+            if (wrongPool.length === 0) return;
+            quizPool = shuffle([...wrongPool]);
+        } else {
+            // 普通全新测试模式
+            wrongPool = [];
+            if (currentMode === 'meridian') {
+                // 按勾选的经络筛选预置数据
+                const checkedBoxes = document.querySelectorAll('input[name="meridian"]:checked');
+                const selectedMeridians = Array.from(checkedBoxes).map(cb => cb.value);
+                
+                if (selectedMeridians.length === 0) {
+                    alert('请至少选择一个经络！');
+                    return;
+                }
+                
+                quizPool = PRESET_DATA.filter(item => selectedMeridians.includes(item.meridian));
+                GLOBAL_POOL = [...PRESET_DATA]; // 干扰项使用全集
+            } else {
+                // 解析自定义输入
+                const rawText = document.getElementById('custom-input').value.trim();
+                if (!rawText) {
+                    alert('请在输入框中粘贴您的自定义穴位数据！');
+                    return;
+                }
+                
+                const lines = rawText.split('\n');
+                const parsedData = [];
+                
+                lines.forEach(line => {
+                    const parts = line.split(/\s+/); // 按空格或制表符切分
+                    if(parts.length >= 2) {
+                        const name = parts[0].trim();
+                        const desc = parts.slice(1).join(' ').trim();
+                        parsedData.push({
+                            name: name,
+                            desc: desc,
+                            part: extractPart(desc),
+                            meridian: '自定义'
+                        });
+                    }
+                });
+
+                if (parsedData.length === 0) {
+                    alert('无法解析输入的数据，请确认每行格式为：穴位名[空格]完整描述');
+                    return;
+                }
+
+                quizPool = parsedData;
+                GLOBAL_POOL = parsedData; // 如果是自定义，干扰项从自定义池中提取
+            }
+            quizPool = shuffle([...quizPool]);
+        }
+
+        if(quizPool.length === 0) {
+            alert('题库空中，无法开始。');
+            return;
+        }
+
+        // 切换视图并重置状态
+        currentIndex = 0;
+        score = 0;
+        
+        document.getElementById('setup-view').classList.add('hidden');
+        document.getElementById('result-view').classList.add('hidden');
+        document.getElementById('quiz-view').classList.remove('hidden');
+        
+        showQuestion();
+    }
+
+    // 显示题目
+    function showQuestion() {
+        // 重置答题卡和按钮
+        document.getElementById('explain-box').classList.add('hidden');
+        const nextBtn = document.getElementById('next-btn');
+        nextBtn.disabled = true;
+        nextBtn.innerText = (currentIndex === quizPool.length - 1) ? "查看结果 🎉" : "下一题 ➡️";
+
+        // 获取当前题目穴位
+        const currentQ = quizPool[currentIndex];
+        
+        // 更新进度和题干
+        document.getElementById('current-q-index').innerText = currentIndex + 1;
+        document.getElementById('total-q-count').innerText = quizPool.length;
+        document.getElementById('question-title').innerText = currentQ.name;
+
+        // 生成干扰项 (从GLOBAL_POOL抽取不等于当前正确部位的独特部位)
+        let distractions = [...new Set(GLOBAL_POOL.map(item => item.part))]
+                            .filter(p => p !== currentQ.part);
+        
+        // 打乱干扰项并取前4个
+        distractions = shuffle(distractions).slice(0, 4);
+        
+        // 合并正确答案和干扰项
+        let options = [currentQ.part, ...distractions];
+        // 如果去重后不够5个选项（比如自定义输入的部位太少），用兜底项补齐
+        while(options.length < 5) {
+            options.push("其余部位" + options.length);
+        }
+        options = [...new Set(options)].slice(0, 5); // 确保绝对唯一且只有5项
+        
+        // 再次打乱5个选项的顺序
+        options = shuffle(options);
+
+        // 渲染到界面上
+        const optionsBox = document.getElementById('options-box');
+        optionsBox.innerHTML = '';
+        
+        const letters = ['A', 'B', 'C', 'D', 'E'];
+        options.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerHTML = `<span class="prefix">${letters[index]}.</span> <span class="opt-text">${opt}</span>`;
+            // 绑定点击事件
+            btn.onclick = () => checkAnswer(btn, opt, currentQ.part);
+            optionsBox.appendChild(btn);
+        });
+    }
+
+    // 检查答案
+    function checkAnswer(selectedBtn, chosenPart, correctPart) {
+        // 禁用所有选项按钮，防止重复点击
+        const buttons = document.querySelectorAll('.option-btn');
+        buttons.forEach(btn => btn.disabled = true);
+
+        const currentQ = quizPool[currentIndex];
+        const isCorrect = (chosenPart === correctPart);
+        
+        // 标记选对或者选错的状态
+        if (isCorrect) {
+            selectedBtn.classList.add('correct');
+            score++;
+            showExplainPanel(true, currentQ.desc);
+        } else {
+            selectedBtn.classList.add('wrong');
+            // 把正确的那个按钮找出来高亮绿色
+            buttons.forEach(btn => {
+                const text = btn.querySelector('.opt-text').innerText;
+                if(text === correctPart) btn.classList.add('correct');
+            });
+            // 录入错题池
+            if (!wrongPool.some(item => item.name === currentQ.name)) {
+                wrongPool.push(currentQ);
+            }
+            showExplainPanel(false, currentQ.desc);
+        }
+
+        // 激活“下一题”按钮
+        document.getElementById('next-btn').disabled = false;
+    }
+
+    // 显示底部完整定位面板
+    function showExplainPanel(isCorrect, fullDesc) {
+        const panel = document.getElementById('explain-box');
+        const title = document.getElementById('explain-result');
+        const content = document.getElementById('explain-content');
+        
+        panel.className = 'explain-panel'; // 重置
+        if (isCorrect) {
+            panel.classList.add('correct-style');
+            title.innerHTML = '✅ 回答正确！';
+        } else {
+            panel.classList.add('wrong-style');
+            title.innerHTML = '❌ 回答错误！';
+        }
+        
+        content.innerHTML = `<strong>完整位置：</strong>${fullDesc}`;
+        panel.classList.remove('hidden');
+    }
+
+    // 下一题或去结算
+    function nextQuestion() {
+        currentIndex++;
+        if(currentIndex < quizPool.length) {
+            showQuestion();
+        } else {
+            showResult();
+        }
+    }
+
+    // 显示结果页
+    function showResult() {
+        document.getElementById('quiz-view').classList.add('hidden');
+        document.getElementById('result-view').classList.remove('hidden');
+
+        // 计算正确率
+        const percent = Math.round((score / quizPool.length) * 100);
+        document.getElementById('score-text').innerText = percent + '%';
+        document.getElementById('stats-text').innerText = `本次测试共 ${quizPool.length} 题，答对 ${score} 题，答错 ${quizPool.length - score} 题。`;
+
+        // 渲染错题列表复习板
+        const wrongZone = document.getElementById('wrong-pool-zone');
+        const wrongListBox = document.getElementById('wrong-list-box');
+        const reviewBtn = document.getElementById('review-wrong-btn');
+
+        if(wrongPool.length > 0) {
+            wrongZone.classList.remove('hidden');
+            reviewBtn.classList.remove('hidden');
+            reviewBtn.innerText = `复习错题 🔄 (${wrongPool.length}题)`;
+            
+            wrongListBox.innerHTML = '';
+            wrongPool.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'wrong-item';
+                div.innerHTML = `<span class="w-name">【${item.name}】</span> ${item.desc}`;
+                wrongListBox.appendChild(div);
+            });
+        } else {
+            wrongZone.classList.add('hidden');
+            reviewBtn.classList.add('hidden'); // 没有错题则隐藏复习错题按钮
+        }
+    }
+
+    // 返回设置主页
+    function backToSetup() {
+        document.getElementById('result-view').classList.add('hidden');
+        document.getElementById('setup-view').classList.remove('hidden');
+    }
+
+    // 初始化页面执行
+    window.onload = init;
+</script>
+
+</body>
+</html>

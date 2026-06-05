@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>背多分 BDF - 手动计次背诵助手</title>
+  <meta name="description" content="背多分是一款纯离线的简便背诵朗读助手，支持手动点击计次，支持跟读、背诵和挑战模式，助你高效记忆。">
+  
+  <!-- App Mode Support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="背多分">
+  
+  <!-- Standalone PWA Manifest encoded via Data URI -->
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22%E8%83%8C%E5%A4%9A%E5%88%86%20BDF%20%E6%89%8B%E5%8A%A8%E8%AE%A1%E6%AC%A1%E7%89%88%22%2C%22short_name%22%3A%22%E8%83%8C%E5%A4%9A%E5%88%86%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b0813%22%2C%22theme_color%22%3A%22%230b0813%22%7D">
+
+  <style>
+    /* Google Fonts import - Only loads online, fallbacks specified for offline */
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=ZCOOL+KuaiLe&display=swap');
+
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0b0813 0%, #151026 50%, #08050e 100%);
+      --panel-bg: rgba(22, 17, 39, 0.7);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --panel-border-focus: rgba(139, 92, 246, 0.4);
+      --text-primary: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --text-muted: #6b7280;
+      
+      --accent-purple: #8b5cf6;
+      --accent-purple-glow: rgba(139, 92, 246, 0.3);
+      --accent-emerald: #10b981;
+      --accent-emerald-glow: rgba(16, 185, 129, 0.3);
+      --accent-rose: #f43f5e;
+      
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+      --font-title: 'ZCOOL KuaiLe', 'STKaiti', 'KaiTi', -apple-system, sans-serif;
+      --font-body: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Microsoft YaHei", sans-serif;
+      
+      --transition-speed: 0.3s;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-gradient);
+      color: var(--text-primary);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      position: relative;
+      padding: 16px;
+      touch-action: manipulation;
+    }
+
+    /* Ambient Background Light Orbs */
+    body::before, body::after {
+      content: '';
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      z-index: -1;
+      filter: blur(100px);
+      opacity: 0.15;
+      pointer-events: none;
+    }
+    body::before {
+      background: var(--accent-purple);
+      top: 10%;
+      left: 5%;
+    }
+    body::after {
+      background: var(--accent-emerald);
+      bottom: 10%;
+      right: 5%;
+    }
+
+    /* App Container */
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      min-height: 80vh;
+      min-height: 80dvh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Glassmorphism Panel */
+    .glass-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      box-shadow: var(--glass-shadow);
+      padding: 24px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      transition: all var(--transition-speed) ease;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Top Navigation bar in practice */
+    .top-navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      height: 32px;
+    }
+
+    .back-edit-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      border-radius: 50%;
+      transition: background 0.2s, color 0.2s;
+    }
+    .back-edit-btn:active {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+    }
+
+    .navbar-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      letter-spacing: 0.5px;
+    }
+
+    /* Header in Edit view */
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    header h1 {
+      font-family: var(--font-title);
+      font-size: 2.2rem;
+      letter-spacing: 2px;
+      background: linear-gradient(to right, #a78bfa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: inline-block;
+      margin-bottom: 4px;
+      text-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+    }
+    header p {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      letter-spacing: 1px;
+    }
+
+    /* Screen Transitions */
+    .screen {
+      display: none;
+      flex-direction: column;
+      flex-grow: 1;
+      opacity: 0;
+      transform: translateY(15px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+
+    .screen.active {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Forms & Inputs */
+    .form-group {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      color: var(--text-primary);
+      padding: 16px;
+      font-family: inherit;
+      font-size: 1rem;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+    }
+    textarea:focus {
+      border-color: var(--panel-border-focus);
+      box-shadow: 0 0 12px var(--accent-purple-glow);
+    }
+
+    /* Number Input directly typed */
+    .number-input-field {
+      width: 100%;
+      height: 48px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--panel-border);
+      border-radius: 12px;
+      color: var(--text-primary);
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 600;
+      outline: none;
+      transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+      -moz-appearance: textfield;
+    }
+    .number-input-field:focus {
+      border-color: var(--panel-border-focus);
+      box-shadow: 0 0 12px var(--accent-purple-glow);
+    }
+    .number-input-field::-webkit-outer-spin-button,
+    .number-input-field::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Template Grid */
+    .template-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .template-btn {
+      padding: 10px 6px;
+      border-radius: 12px;
+      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .template-btn:hover, .template-btn.active {
+      background: var(--accent-purple-glow);
+      color: var(--text-primary);
+      border-color: var(--accent-purple);
+    }
+
+    /* Mode Selection Grid */
+    .mode-selector {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .mode-card {
+      padding: 12px 8px;
+      border-radius: 14px;
+      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .mode-card.active {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 12px rgba(139, 92, 246, 0.15);
+    }
+    .mode-card .mode-icon {
+      font-size: 1.25rem;
+    }
+    .mode-card .mode-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .mode-card .mode-desc {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    /* Primary Start Button */
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      border-radius: 16px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent-purple) 0%, #7c3aed 100%);
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      margin-top: auto;
+    }
+    .btn-primary:active {
+      transform: scale(0.97);
+      box-shadow: 0 2px 10px rgba(139, 92, 246, 0.2);
+    }
+
+    /* Practice Area Layout */
+    .practice-container {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      gap: 16px;
+    }
+
+    /* Clickable Recitation Card */
+    .line-card {
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 24px;
+      border: 1px solid var(--panel-border);
+      padding: 36px 24px;
+      text-align: center;
+      min-height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+    }
+    .line-card:hover {
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(139, 92, 246, 0.2);
+      transform: translateY(-2px);
+    }
+    .line-card:active {
+      transform: translateY(1px) scale(0.98);
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .line-text {
+      font-size: 1.45rem;
+      font-weight: 500;
+      line-height: 1.6;
+      color: var(--text-primary);
+      transition: filter 0.3s ease, opacity 0.3s ease;
+      word-break: break-all;
+    }
+
+    .line-text.blurred {
+      filter: blur(10px);
+    }
+
+    /* Floating Peek button for Challenge mode */
+    .reveal-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      border-radius: 50%;
+      color: rgba(255, 255, 255, 0.6);
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 5;
+      transition: all 0.2s ease;
+    }
+    .reveal-btn:active, .reveal-btn.active {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: rgba(139, 92, 246, 0.4);
+      color: #fff;
+    }
+
+    /* Green flash on success match */
+    .match-flash {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(16, 185, 129, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease-out;
+      z-index: 10;
+    }
+    .match-flash.show {
+      opacity: 1;
+    }
+
+    /* Repeat progress dots */
+    .repeat-dots {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 4px 0 12px 0;
+      flex-wrap: wrap;
+    }
+    .dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+    }
+    .dot.active {
+      background: var(--accent-emerald);
+      border-color: var(--accent-emerald);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+      transform: scale(1.25);
+    }
+
+    /* Progress Stats Row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .stat-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--panel-border);
+      border-radius: 16px;
+      padding: 12px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent-emerald);
+    }
+    .stat-value.purple {
+      color: var(--accent-purple);
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* Controls */
+    .controls-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: auto;
+    }
+
+    /* Large Count tap button (alternative to tapping card) */
+    .btn-count {
+      width: 100%;
+      padding: 18px;
+      border-radius: 18px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent-emerald) 0%, #059669 100%);
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.35);
+      transition: all 0.2s ease;
+    }
+    .btn-count:active {
+      transform: scale(0.97);
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.2);
+    }
+
+    /* Navigation auxiliary row */
+    .action-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .action-btn {
+      padding: 12px 6px;
+      border-radius: 14px;
+      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .action-btn svg {
+      color: var(--text-secondary);
+    }
+    .action-btn span {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .action-btn:active {
+      background: rgba(255, 255, 255, 0.12);
+      transform: scale(0.95);
+    }
+    .action-btn.active-glow {
+      border-color: var(--accent-emerald);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+      background: rgba(16, 185, 129, 0.08);
+    }
+    .action-btn.active-glow span, .action-btn.active-glow svg {
+      color: var(--accent-emerald);
+    }
+
+    /* Summary screen */
+    .summary-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 20px;
+      flex-grow: 1;
+    }
+
+    .trophy-glow {
+      font-size: 4rem;
+      margin: 10px 0;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .score-card {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.95rem;
+    }
+    .score-row .label {
+      color: var(--text-secondary);
+    }
+    .score-row .val {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .score-row .val.green {
+      color: var(--accent-emerald);
+    }
+
+    /* Keyframe Animations */
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+
+    /* Media Queries for Mobile Landscape */
+    @media (max-height: 500px) and (orientation: landscape) {
+      body {
+        padding: 8px;
+      }
+      .app-container {
+        max-width: 100%;
+        width: 100%;
+        min-height: 95vh;
+        min-height: 95dvh;
+      }
+      .glass-panel {
+        padding: 16px;
+        flex-direction: row;
+        gap: 16px;
+      }
+      header {
+        display: none;
+      }
+      .screen.active {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        width: 100%;
+      }
+      .form-group {
+        margin-bottom: 8px;
+      }
+      textarea {
+        min-height: 80px;
+      }
+      .template-grid {
+        margin-bottom: 8px;
+      }
+      .practice-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        justify-content: space-between;
+      }
+      .line-card {
+        min-height: 85px;
+        padding: 16px;
+      }
+      .line-text {
+        font-size: 1.25rem;
+      }
+      .stats-row {
+        gap: 8px;
+      }
+      .stat-box {
+        padding: 6px;
+      }
+      .controls-layout {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .btn-count {
+        padding: 12px;
+        font-size: 1.05rem;
+      }
+      .action-row {
+        gap: 8px;
+      }
+      .action-btn {
+        padding: 8px 4px;
+        border-radius: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <div class="glass-panel">
+      
+      <!-- 1. SETUP SCREEN -->
+      <section id="setup-screen" class="screen active">
+        <header>
+          <h1>背多分 BDF</h1>
+          <p>手动计次离线背诵助手</p>
+        </header>
+
+        <!-- Presets -->
+        <div class="form-group">
+          <label>选择背诵范本</label>
+          <div class="template-grid" id="template-grid">
+            <button type="button" class="template-btn" data-template="jingyexi">静夜思</button>
+            <button type="button" class="template-btn" data-template="mulan">木兰诗 (节选)</button>
+            <button type="button" class="template-btn" data-template="shansuo">闪烁的小星</button>
+          </div>
+        </div>
+
+        <!-- Text Input -->
+        <div class="form-group">
+          <label for="text-input">输入背诵内容 (按换行符断句)</label>
+          <textarea id="text-input" placeholder="床前明月光，&#10;疑是地上霜。&#10;举头望明月，&#10;低头思故乡。"></textarea>
+        </div>
+
+        <!-- Repetition Count -->
+        <div class="form-group">
+          <label for="repeat-count">每行重复背诵次数</label>
+          <input type="number" id="repeat-count" class="number-input-field" value="3" min="1" max="99" inputmode="numeric">
+        </div>
+
+        <!-- Mode Select -->
+        <div class="form-group">
+          <label>选择模式</label>
+          <div class="mode-selector">
+            <div class="mode-card active" data-mode="repeat">
+              <span class="mode-icon">🔊</span>
+              <span class="mode-title">跟读模式</span>
+              <span class="mode-desc">先听再读</span>
+            </div>
+            <div class="mode-card" data-mode="recite">
+              <span class="mode-icon">📖</span>
+              <span class="mode-title">背诵模式</span>
+              <span class="mode-desc">直接背诵</span>
+            </div>
+            <div class="mode-card" data-mode="challenge">
+              <span class="mode-icon">🫣</span>
+              <span class="mode-title">挑战模式</span>
+              <span class="mode-desc">隐藏文本</span>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" id="start-btn" class="btn-primary">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          开始背诵
+        </button>
+      </section>
+
+      <!-- 2. PRACTICE SCREEN -->
+      <section id="practice-screen" class="screen">
+        <div class="top-navbar">
+          <button id="back-to-edit-btn" class="back-edit-btn" title="返回编辑" aria-label="返回编辑">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          </button>
+          <span class="navbar-title" id="navbar-mode-title">跟读模式</span>
+          <div style="width: 34px;"></div> <!-- Spacer to keep title centered -->
+        </div>
+
+        <div class="practice-container">
+          
+          <!-- Recitation Display Card -->
+          <div class="line-card" id="line-card">
+            <!-- Reveal toggle icon inside card (only for challenge mode) -->
+            <button id="reveal-btn" class="reveal-btn" title="查看原文" aria-label="查看原文">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+            <div id="match-flash" class="match-flash">🎉</div>
+            <div id="line-display" class="line-text">加载中...</div>
+          </div>
+
+          <!-- Progress dots indicator -->
+          <div class="repeat-dots" id="repeat-dots-container"></div>
+
+          <!-- Info display stats -->
+          <div class="stats-row">
+            <div class="stat-box">
+              <span class="stat-value" id="stat-repeats-left">--</span>
+              <span class="stat-label">剩余次数</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value purple" id="stat-lines-left">--</span>
+              <span class="stat-label">剩余行数</span>
+            </div>
+          </div>
+
+          <!-- Interaction buttons -->
+          <div class="controls-layout">
+            <button id="count-tap-btn" class="btn-count">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              我读完了 (点击计次)
+            </button>
+
+            <div class="action-row">
+              <button id="tts-read-btn" class="action-btn" title="听取当前行">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                <span>朗读</span>
+              </button>
+              
+              <button id="prev-line-btn" class="action-btn" title="返回上一行">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                <span>上一行</span>
+              </button>
+
+              <button id="next-line-btn" class="action-btn" title="跳过此行">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <span>下一行</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- 3. SUMMARY SCREEN -->
+      <section id="summary-screen" class="screen">
+        <div class="summary-container">
+          <div class="trophy-glow">🏆</div>
+          <h2>太棒了！背诵完成</h2>
+          <p style="color: var(--text-secondary); font-size: 0.9rem;">你已按计划完成本次全部练习！</p>
+          
+          <div class="score-card">
+            <div class="score-row">
+              <span class="label">背诵模式</span>
+              <span class="val" id="summary-mode">跟读模式</span>
+            </div>
+            <div class="score-row">
+              <span class="label">练习句数</span>
+              <span class="val" id="summary-lines">-- 行</span>
+            </div>
+            <div class="score-row">
+              <span class="label">每句遍数</span>
+              <span class="val" id="summary-repeats">-- 遍</span>
+            </div>
+            <div class="score-row">
+              <span class="label">所用时间</span>
+              <span class="val green" id="summary-time">--:--</span>
+            </div>
+          </div>
+
+          <button type="button" id="restart-btn" class="btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+            再背一次
+          </button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    // Preset Texts
+    const TEMPLATES = {
+      jingyexi: `床前明月光，\n疑是地上霜。\n举头望明月，\n低头思故乡。`,
+      mulan: `唧唧复唧唧，木兰当户织。\n不闻机杼声，惟闻女叹息。\n问女何所思，问女何所忆。\n女亦无所思，女亦无所忆。`,
+      shansuo: `一闪一闪亮晶晶，\n满天都是小星星。\n挂在天空放光明，\n好像许多小眼睛。`
+    };
+
+    // State Variables
+    let state = {
+      textLines: [],
+      currentLineIndex: 0,
+      targetRepeats: 3,
+      remainingRepeats: 3,
+      mode: 'repeat', // 'repeat', 'recite', 'challenge'
+      isSpeaking: false,
+      isRevealed: false, // For challenge mode temp peek
+      startTime: null,
+      audioCtx: null
+    };
+
+    // DOM Elements Mapping
+    const elements = {
+      setupScreen: document.getElementById('setup-screen'),
+      practiceScreen: document.getElementById('practice-screen'),
+      summaryScreen: document.getElementById('summary-screen'),
+      backBtn: document.getElementById('back-to-edit-btn'),
+      textInput: document.getElementById('text-input'),
+      repeatCountInput: document.getElementById('repeat-count'),
+      templateGrid: document.getElementById('template-grid'),
+      startBtn: document.getElementById('start-btn'),
+      
+      navbarModeTitle: document.getElementById('navbar-mode-title'),
+      lineCard: document.getElementById('line-card'),
+      revealBtn: document.getElementById('reveal-btn'),
+      matchFlash: document.getElementById('match-flash'),
+      lineDisplay: document.getElementById('line-display'),
+      repeatDotsContainer: document.getElementById('repeat-dots-container'),
+      statRepeatsLeft: document.getElementById('stat-repeats-left'),
+      statLinesLeft: document.getElementById('stat-lines-left'),
+      
+      countTapBtn: document.getElementById('count-tap-btn'),
+      ttsBtn: document.getElementById('tts-read-btn'),
+      prevLineBtn: document.getElementById('prev-line-btn'),
+      nextLineBtn: document.getElementById('next-line-btn'),
+      
+      restartBtn: document.getElementById('restart-btn'),
+      summaryMode: document.getElementById('summary-mode'),
+      summaryLines: document.getElementById('summary-lines'),
+      summaryRepeats: document.getElementById('summary-repeats'),
+      summaryTime: document.getElementById('summary-time')
+    };
+
+    // Sound Generator (Pure offline Web Audio synthesis)
+    function playAudioTone(type) {
+      try {
+        if (!state.audioCtx) {
+          state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (state.audioCtx.state === 'suspended') {
+          state.audioCtx.resume();
+        }
+        
+        const now = state.audioCtx.currentTime;
+        
+        if (type === 'click') {
+          // Sharp mechanical click sound
+          const osc = state.audioCtx.createOscillator();
+          const gain = state.audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(state.audioCtx.destination);
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1000, now);
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        } else if (type === 'success') {
+          // Double chime C5 -> E5 for single line completion
+          const osc = state.audioCtx.createOscillator();
+          const gain = state.audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(state.audioCtx.destination);
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.12);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } else if (type === 'complete') {
+          // Rising major arpeggio C4, E4, G4, C5 for practice complete
+          const frequencies = [261.63, 329.63, 392.00, 523.25];
+          frequencies.forEach((freq, idx) => {
+            const osc = state.audioCtx.createOscillator();
+            const gain = state.audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(state.audioCtx.destination);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+            gain.gain.setValueAtTime(0.12, now + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.4);
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 0.4);
+          });
+        }
+      } catch (err) {
+        console.warn('Audio synthesis blocked or not supported:', err);
+      }
+    }
+
+    // App Initialization
+    document.addEventListener('DOMContentLoaded', () => {
+      setupEvents();
+      loadTextTemplate('jingyexi'); // Load default template
+    });
+
+    // Event Bindings
+    function setupEvents() {
+      // Templates choice
+      elements.templateGrid.querySelectorAll('.template-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          playAudioTone('click');
+          elements.templateGrid.querySelectorAll('.template-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          loadTextTemplate(btn.dataset.template);
+        });
+      });
+
+      // Mode Choice Cards
+      const modeCards = document.querySelectorAll('.mode-card');
+      modeCards.forEach(card => {
+        card.addEventListener('click', () => {
+          playAudioTone('click');
+          modeCards.forEach(c => c.classList.remove('active'));
+          card.classList.add('active');
+          state.mode = card.dataset.mode;
+        });
+      });
+
+      // Flow Control Actions
+      elements.startBtn.addEventListener('click', startPracticeSession);
+      elements.backBtn.addEventListener('click', exitToSettings);
+      elements.restartBtn.addEventListener('click', () => {
+        playAudioTone('click');
+        transitionScreen('setup-screen');
+      });
+
+      // Recitation Interactions
+      // Card click counts as progress
+      elements.lineCard.addEventListener('click', (e) => {
+        // Prevent click if clicking the eye reveal button
+        if (e.target.closest('#reveal-btn')) return;
+        handleManualCount();
+      });
+
+      // Bottom direct count button also counts
+      elements.countTapBtn.addEventListener('click', handleManualCount);
+
+      // TTS Reading Voice triggers
+      elements.ttsBtn.addEventListener('click', () => {
+        playAudioTone('click');
+        triggerTextToSpeech();
+      });
+
+      // Navigation Actions
+      elements.prevLineBtn.addEventListener('click', navigatePreviousLine);
+      elements.nextLineBtn.addEventListener('click', navigateNextLine);
+
+      // Eye reveal toggle button for challenge mode
+      elements.revealBtn.addEventListener('mousedown', startRevealPeek);
+      elements.revealBtn.addEventListener('mouseup', stopRevealPeek);
+      elements.revealBtn.addEventListener('mouseleave', stopRevealPeek);
+      elements.revealBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // Prevent double trigger
+        startRevealPeek();
+      });
+      elements.revealBtn.addEventListener('touchend', stopRevealPeek);
+    }
+
+    // Helper: Load Preset templates
+    function loadTextTemplate(key) {
+      if (TEMPLATES[key]) {
+        elements.textInput.value = TEMPLATES[key];
+      }
+    }
+
+    // Helper: Switch screens
+    function transitionScreen(screenId) {
+      elements.setupScreen.classList.remove('active');
+      elements.practiceScreen.classList.remove('active');
+      elements.summaryScreen.classList.remove('active');
+
+      document.getElementById(screenId).classList.add('active');
+    }
+
+    // Unlocking AudioContext on iOS/Android gesture
+    function unlockAudioContext() {
+      if (!state.audioCtx) {
+        state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (state.audioCtx.state === 'suspended') {
+        state.audioCtx.resume();
+      }
+    }
+
+    // Start Practice
+    function startPracticeSession() {
+      unlockAudioContext();
+      playAudioTone('click');
+
+      const rawText = elements.textInput.value;
+      
+      // Strict segmentation by newlines
+      state.textLines = rawText.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+
+      if (state.textLines.length === 0) {
+        alert('请输入需要背诵的内容');
+        return;
+      }
+
+      // Read target count directly typed
+      let countVal = parseInt(elements.repeatCountInput.value);
+      if (isNaN(countVal) || countVal < 1) {
+        countVal = 3; // Fallback
+      }
+      state.targetRepeats = Math.min(countVal, 99);
+      state.remainingRepeats = state.targetRepeats;
+      state.currentLineIndex = 0;
+      state.startTime = new Date();
+
+      // Configure Navbar header mode text
+      const modeNames = {
+        repeat: '跟读模式',
+        recite: '背诵模式',
+        challenge: '挑战模式'
+      };
+      elements.navbarModeTitle.textContent = modeNames[state.mode] || '自定义模式';
+
+      updatePracticeUI();
+      transitionScreen('practice-screen');
+
+      // Auto TTS if in 跟读模式
+      if (state.mode === 'repeat') {
+        setTimeout(triggerTextToSpeech, 400);
+      }
+    }
+
+    // Exit back to settings
+    function exitToSettings() {
+      playAudioTone('click');
+      window.speechSynthesis.cancel();
+      transitionScreen('setup-screen');
+    }
+
+    // Update Practice View State
+    function updatePracticeUI() {
+      const lineText = state.textLines[state.currentLineIndex];
+      elements.lineDisplay.textContent = lineText;
+
+      // Reset Reveal/Peek status
+      state.isRevealed = false;
+      elements.lineDisplay.classList.remove('blurred');
+      elements.revealBtn.style.display = 'none';
+
+      if (state.mode === 'challenge') {
+        elements.lineDisplay.classList.add('blurred');
+        elements.revealBtn.style.display = 'flex';
+      }
+
+      // Numerical/Visual display stats
+      elements.statRepeatsLeft.textContent = state.remainingRepeats;
+      elements.statLinesLeft.textContent = state.textLines.length - state.currentLineIndex;
+
+      // Draw repeat dots progress indicator
+      renderRepeatDots();
+    }
+
+    // Generate repetition progress dots
+    function renderRepeatDots() {
+      elements.repeatDotsContainer.innerHTML = '';
+      const total = state.targetRepeats;
+      const completed = total - state.remainingRepeats;
+
+      // If repetitions are too many (e.g. > 15), rendering dots clutter layout. 
+      // Instead, display a compact textual progress bar.
+      if (total > 15) {
+        elements.repeatDotsContainer.innerHTML = `
+          <div style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 600;">
+            进度: ${completed} / ${total} 遍
+          </div>
+        `;
+        return;
+      }
+
+      for (let i = 0; i < total; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'dot';
+        if (i < completed) {
+          dot.className = 'dot active';
+        }
+        elements.repeatDotsContainer.appendChild(dot);
+      }
+    }
+
+    // Handle Manual Tapping Count
+    function handleManualCount() {
+      if (state.isSpeaking) {
+        // Cancel speech if user clicks to advance immediately
+        window.speechSynthesis.cancel();
+        state.isSpeaking = false;
+        elements.ttsBtn.classList.remove('active-glow');
+      }
+
+      state.remainingRepeats--;
+
+      if (state.remainingRepeats <= 0) {
+        // Complete current line
+        playAudioTone('success');
+        
+        // Show success splash animation
+        elements.matchFlash.classList.add('show');
+        
+        // Reveal text temporarily on success if in challenge mode
+        if (state.mode === 'challenge') {
+          elements.lineDisplay.classList.remove('blurred');
+        }
+
+        setTimeout(() => {
+          elements.matchFlash.classList.remove('show');
+          state.currentLineIndex++;
+          
+          if (state.currentLineIndex >= state.textLines.length) {
+            finishRecitation();
+          } else {
+            state.remainingRepeats = state.targetRepeats;
+            updatePracticeUI();
+            
+            // Auto speak next line in 跟读模式
+            if (state.mode === 'repeat') {
+              triggerTextToSpeech();
+            }
+          }
+        }, 800);
+      } else {
+        // Simple tick sound and redraw progress UI
+        playAudioTone('click');
+        updatePracticeUI();
+      }
+    }
+
+    // Native speech synthesis engine
+    function triggerTextToSpeech() {
+      if (state.isSpeaking) return;
+      window.speechSynthesis.cancel();
+
+      state.isSpeaking = true;
+      elements.ttsBtn.classList.add('active-glow');
+
+      const text = state.textLines[state.currentLineIndex];
+      const utterance = new SpeechSynthesisUtterance(text);
+
+      // Auto-detect language
+      const hasChinese = /[\u4e00-\u9fa5]/.test(text);
+      utterance.lang = hasChinese ? 'zh-CN' : 'en-US';
+
+      // Pick a corresponding local system voice
+      const voices = window.speechSynthesis.getVoices();
+      const voice = voices.find(v => v.lang.includes(utterance.lang));
+      if (voice) {
+        utterance.voice = voice;
+      }
+
+      utterance.onend = () => {
+        state.isSpeaking = false;
+        elements.ttsBtn.classList.remove('active-glow');
+      };
+
+      utterance.onerror = () => {
+        state.isSpeaking = false;
+        elements.ttsBtn.classList.remove('active-glow');
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Manual navigation prev/next
+    function navigatePreviousLine() {
+      playAudioTone('click');
+      window.speechSynthesis.cancel();
+      state.isSpeaking = false;
+      elements.ttsBtn.classList.remove('active-glow');
+
+      if (state.currentLineIndex > 0) {
+        state.currentLineIndex--;
+        state.remainingRepeats = state.targetRepeats;
+        updatePracticeUI();
+        if (state.mode === 'repeat') {
+          triggerTextToSpeech();
+        }
+      }
+    }
+
+    function navigateNextLine() {
+      playAudioTone('click');
+      window.speechSynthesis.cancel();
+      state.isSpeaking = false;
+      elements.ttsBtn.classList.remove('active-glow');
+
+      if (state.currentLineIndex < state.textLines.length - 1) {
+        state.currentLineIndex++;
+        state.remainingRepeats = state.targetRepeats;
+        updatePracticeUI();
+        if (state.mode === 'repeat') {
+          triggerTextToSpeech();
+        }
+      } else {
+        finishRecitation();
+      }
+    }
+
+    // Challenge Mode Peeking (Temporarily unblur text on tap and hold)
+    function startRevealPeek() {
+      if (state.mode !== 'challenge') return;
+      state.isRevealed = true;
+      elements.lineDisplay.classList.remove('blurred');
+      elements.revealBtn.classList.add('active');
+    }
+
+    function stopRevealPeek() {
+      if (state.mode !== 'challenge' || !state.isRevealed) return;
+      state.isRevealed = false;
+      elements.lineDisplay.classList.add('blurred');
+      elements.revealBtn.classList.remove('active');
+    }
+
+    // Finish entire practice
+    function finishRecitation() {
+      playAudioTone('complete');
+      window.speechSynthesis.cancel();
+
+      // Calculate elapsed time
+      const endTime = new Date();
+      const diffSec = Math.floor((endTime - state.startTime) / 1000);
+      const min = Math.floor(diffSec / 60).toString().padStart(2, '0');
+      const sec = (diffSec % 60).toString().padStart(2, '0');
+
+      // Populate summary stats
+      const modesMapping = {
+        repeat: '跟读模式 (先听后背)',
+        recite: '背诵模式 (直接背诵)',
+        challenge: '挑战模式 (隐去文字)'
+      };
+      elements.summaryMode.textContent = modesMapping[state.mode] || '自定义';
+      elements.summaryLines.textContent = `${state.textLines.length} 句`;
+      elements.summaryRepeats.textContent = `${state.targetRepeats} 遍 / 句`;
+      elements.summaryTime.textContent = `${min}:${sec}`;
+
+      transitionScreen('summary-screen');
+    }
+  </script>
+</body>
+</html>

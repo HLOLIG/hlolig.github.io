@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>行内容随机抽查工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 25px;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 600px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 12px;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            resize: vertical;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .result-box {
+            background: #edf2f7;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #2b6cb0;
+            border: 2px dashed #cbd5e0;
+            word-break: break-all;
+        }
+        .options {
+            margin: 15px 0;
+        }
+        button {
+            width: 100%;
+            background-color: #4299e1;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #3182ce; }
+        button:disabled { background-color: #cbd5e0; cursor: not-allowed; }
+        .history {
+            margin-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 15px;
+        }
+        .history h3 { margin-bottom: 10px; color: #4a5568; font-size: 16px;}
+        .history-list {
+            max-height: 120px;
+            overflow-y: auto;
+            background: #f7fafc;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #718096;
+            list-style-type: decimal;
+            padding-left: 25px;
+        }
+        .status {
+            font-size: 12px;
+            color: #a0aec0;
+            margin-top: 5px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎯 行内容随机抽查工具</h1>
+    
+    <div class="main-layout">
+        <div>
+            <textarea id="inputArea" placeholder="请在此处输入内容，每行一条。&#10;例如：&#10;条目A&#10;条目B&#10;条目C"></textarea>
+            <div id="poolStatus" class="status">当前待抽总数：0</div>
+        </div>
+        
+        <div class="control-panel">
+            <div>
+                <div class="result-box" id="resultDisplay">准备就绪</div>
+                <div class="options">
+                    <label>
+                        <input type="checkbox" id="noRepeatToggle"> 不重复抽查（抽完为止）
+                    </label>
+                </div>
+            </div>
+            
+            <div>
+                <button id="drawBtn" onclick="startDraw()">开始抽查</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="history">
+        <h3>⏱️ 本次抽查历史</h3>
+        <ol class="history-list" id="historyList"></ol>
+    </div>
+</div>
+
+<script>
+    let remainingPool = []; // 用于不重复抽查的奖池
+    let isRolling = false;
+
+    // 监听输入框变化，更新总数提示
+    document.getElementById('inputArea').addEventListener('input', updateStatus);
+    document.getElementById('noRepeatToggle').addEventListener('change', resetPool);
+
+    function getLines() {
+        const text = document.getElementById('inputArea').value;
+        // 过滤空行并去除两端空格
+        return text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    }
+
+    function updateStatus() {
+        const lines = getLines();
+        const isNoRepeat = document.getElementById('noRepeatToggle').checked;
+        
+        if (!isNoRepeat || remainingPool.length === 0) {
+            document.getElementById('poolStatus').innerText = `当前输入有效行数：${lines.length}`;
+        } else {
+            document.getElementById('poolStatus').innerText = `剩余未抽行数：${remainingPool.length} / 总数：${lines.length}`;
+        }
+    }
+
+    function resetPool() {
+        remainingPool = getLines();
+        updateStatus();
+    }
+
+    function startDraw() {
+        if (isRolling) return;
+        
+        const lines = getLines();
+        if (lines.length === 0) {
+            alert('请先在输入框中填写内容！');
+            return;
+        }
+
+        const isNoRepeat = document.getElementById('noRepeatToggle').checked;
+        const resultDisplay = document.getElementById('resultDisplay');
+        const drawBtn = document.getElementById('drawBtn');
+
+        // 如果选择不重复抽查，且池子为空，则初始化/重置池子
+        if (isNoRepeat && remainingPool.length === 0) {
+            remainingPool = [...lines];
+        }
+
+        isRolling = true;
+        drawBtn.disabled = true;
+        
+        // 滚动的动画效果
+        let counter = 0;
+        const totalTicks = 15; // 滚动次数
+        const timer = setInterval(() => {
+            // 滚动时从所有输入中随机展示，制造视觉效果
+            const randomTmp = lines[Math.floor(Math.random() * lines.length)];
+            resultDisplay.innerText = randomTmp;
+            counter++;
+
+            if (counter >= totalTicks) {
+                clearInterval(timer);
+                
+                // 最终结果决定
+                let finalResult = "";
+                if (isNoRepeat) {
+                    const randomIndex = Math.floor(Math.random() * remainingPool.length);
+                    finalResult = remainingPool.splice(randomIndex, 1)[0];
+                    
+                    if (remainingPool.length === 0) {
+                        alert('🎉 所有内容已全部抽查完毕！下次抽取将重新开始。');
+                    }
+                } else {
+                    finalResult = lines[Math.floor(Math.random() * lines.length)];
+                }
+
+                // 呈现最终结果
+                resultDisplay.innerText = finalResult;
+                
+                // 记录到历史
+                const historyList = document.getElementById('historyList');
+                const li = document.createElement('li');
+                li.innerText = finalResult;
+                historyList.insertBefore(li, historyList.firstChild); // 最新抽到的在最上面
+
+                // 更新状态
+                isRolling = false;
+                drawBtn.disabled = false;
+                updateStatus();
+            }
+        }, 60); // 滚动速度（毫秒）
+    }
+</script>
+
+</body>
+</html>
