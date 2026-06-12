@@ -1,0 +1,2498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>岐黄五行针 - 中医五行理论练习</title>
+  <meta name="description" content="一个基于中医基础理论五行学说的交互式学习与练习网页。支持分单元练习、智能错题重练与比例抽取综合考试，包含可交互的五行生克图谱。">
+  
+  <!-- Google Fonts: Classical serif for titles, clean sans-serif for UI -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* CSS RESET & VARIABLES */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    
+    :root {
+      --font-serif: 'Noto Serif SC', serif;
+      --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      
+      /* Pure Palette */
+      --bg-app: #060913;
+      --bg-card: rgba(15, 23, 42, 0.65);
+      --bg-card-hover: rgba(30, 41, 59, 0.85);
+      --border-color: rgba(255, 255, 255, 0.08);
+      
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      
+      /* Element Colors */
+      --color-wood: #10b981;
+      --color-wood-glow: rgba(16, 185, 129, 0.2);
+      --color-fire: #f43f5e;
+      --color-fire-glow: rgba(244, 63, 94, 0.2);
+      --color-earth: #eab308;
+      --color-earth-glow: rgba(234, 179, 8, 0.2);
+      --color-metal: #cbd5e1;
+      --color-metal-glow: rgba(203, 213, 225, 0.2);
+      --color-water: #3b82f6;
+      --color-water-glow: rgba(59, 130, 246, 0.2);
+      
+      /* Feedback States */
+      --color-correct: #10b981;
+      --color-correct-glow: rgba(16, 185, 129, 0.3);
+      --color-incorrect: #f43f5e;
+      --color-incorrect-glow: rgba(244, 63, 94, 0.3);
+      
+      --color-primary: #6366f1;
+      --color-primary-glow: rgba(99, 102, 241, 0.2);
+      
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      
+      --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-elastic: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    body {
+      background-color: var(--bg-app);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 45%);
+      background-attachment: fixed;
+    }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* APP WRAPPER */
+    .app-container {
+      width: 100%;
+      max-width: 1200px;
+      padding: 24px 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    header {
+      margin-bottom: 24px;
+      text-align: center;
+      position: relative;
+    }
+    
+    header h1 {
+      font-family: var(--font-serif);
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #fef08a 0%, #a7f3d0 50%, #bfdbfe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    
+    header p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      font-weight: 300;
+    }
+
+    /* DASHBOARD / STUDY HUB LAYOUT */
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1.1fr 1.2fr;
+      gap: 24px;
+      width: 100%;
+      flex-grow: 1;
+    }
+    
+    @media (max-width: 900px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* LEFT HUB: SVG & ATTRIBUTES */
+    .study-hub {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .glass-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      transition: var(--transition-smooth);
+    }
+    
+    .glass-card:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .svg-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px 0;
+      position: relative;
+    }
+    
+    /* SVG Interactive Styles */
+    svg {
+      max-width: 320px;
+      width: 100%;
+      height: auto;
+      overflow: visible;
+    }
+    
+    .node-group {
+      cursor: pointer;
+      transition: var(--transition-elastic);
+    }
+    
+    .node-circle {
+      transition: var(--transition-elastic);
+      filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+    }
+    
+    .node-group:hover .node-circle {
+      r: 27px;
+      stroke-width: 3.5px;
+    }
+    
+    .node-text {
+      font-family: var(--font-serif);
+      pointer-events: none;
+    }
+    
+    /* Active Node Glow Classes */
+    .node-active-wood .node-circle { fill: #047857; stroke: #34d399; filter: drop-shadow(0 0 12px var(--color-wood)); r: 27px; }
+    .node-active-fire .node-circle { fill: #be123c; stroke: #fb7185; filter: drop-shadow(0 0 12px var(--color-fire)); r: 27px; }
+    .node-active-earth .node-circle { fill: #b45309; stroke: #fde047; filter: drop-shadow(0 0 12px var(--color-earth)); r: 27px; }
+    .node-active-metal .node-circle { fill: #334155; stroke: #f8fafc; filter: drop-shadow(0 0 12px var(--color-metal)); r: 27px; }
+    .node-active-water .node-circle { fill: #1d4ed8; stroke: #60a5fa; filter: drop-shadow(0 0 12px var(--color-water)); r: 27px; }
+    
+    .node-active-wood .node-text { fill: #ffffff; }
+    .node-active-fire .node-text { fill: #ffffff; }
+    .node-active-earth .node-text { fill: #ffffff; }
+    .node-active-metal .node-text { fill: #ffffff; }
+    .node-active-water .node-text { fill: #ffffff; }
+
+    /* SVG Lines & Flows */
+    path {
+      transition: var(--transition-smooth);
+    }
+    
+    .path-active-sheng {
+      stroke: var(--color-earth) !important;
+      stroke-width: 4.5px !important;
+      stroke-dasharray: 8 4;
+      animation: flow-sheng 1.2s linear infinite;
+      filter: drop-shadow(0 0 5px var(--color-earth));
+    }
+    
+    .path-active-ke {
+      stroke: #a78bfa !important;
+      stroke-width: 4.5px !important;
+      stroke-dasharray: 6 4;
+      animation: flow-ke 1.2s linear infinite;
+      filter: drop-shadow(0 0 5px #a78bfa);
+    }
+    
+    @keyframes flow-sheng {
+      to { stroke-dashoffset: -24; }
+    }
+    @keyframes flow-ke {
+      to { stroke-dashoffset: -20; }
+    }
+
+    /* Attributes Panel */
+    .attributes-card {
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .attributes-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+    
+    .element-indicator {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      box-shadow: 0 0 8px currentColor;
+    }
+    
+    .attributes-header h3 {
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+    }
+    
+    .empty-prompt {
+      color: var(--text-muted);
+      text-align: center;
+      margin: auto 0;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    
+    .attrs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    @media (max-width: 480px) {
+      .attrs-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    
+    .attr-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .attr-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    
+    .attr-value {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    
+    .rel-desc-box {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      border-left: 3px solid var(--text-muted);
+    }
+    
+    .rel-desc-title {
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    /* RIGHT HUB: UNIT SELECTOR */
+    .unit-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: 100%;
+    }
+    
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .stat-number {
+      font-size: 1.6rem;
+      font-weight: 700;
+      font-family: var(--font-sans);
+      background: linear-gradient(135deg, #fff 30%, var(--text-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .stat-title {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .unit-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .unit-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition-elastic);
+    }
+    
+    .unit-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--color-primary);
+      opacity: 0.5;
+      transition: var(--transition-smooth);
+    }
+    
+    .unit-card:hover {
+      transform: translateY(-2px);
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    
+    .unit-card:hover::before {
+      opacity: 1;
+      width: 6px;
+    }
+    
+    .unit-info {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-grow: 1;
+      margin-right: 16px;
+    }
+    
+    .unit-number {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .unit-name {
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .unit-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    
+    /* Progress ring */
+    .progress-wrapper {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+    
+    .progress-ring__circle {
+      transition: stroke-dashoffset 0.35s;
+      transform-origin: 50% 50%;
+    }
+    
+    .progress-text {
+      position: absolute;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    /* Specific Colors per Unit Card */
+    .unit-card[data-unit="1"]::before { background: var(--color-wood); }
+    .unit-card[data-unit="1"] .unit-number { color: var(--color-wood); }
+    
+    .unit-card[data-unit="2"]::before { background: var(--color-fire); }
+    .unit-card[data-unit="2"] .unit-number { color: var(--color-fire); }
+    
+    .unit-card[data-unit="3"]::before { background: var(--color-earth); }
+    .unit-card[data-unit="3"] .unit-number { color: var(--color-earth); }
+    
+    .unit-card[data-unit="4"]::before { background: var(--color-water); }
+    .unit-card[data-unit="4"] .unit-number { color: var(--color-water); }
+    
+    .unit-card[data-unit="5"]::before { background: linear-gradient(to bottom, var(--color-fire), var(--color-water)); }
+    .unit-card[data-unit="5"] .unit-number { color: #818cf8; }
+    
+    .unit-card[data-unit="6"] {
+      border: 1px dashed rgba(244, 63, 94, 0.4);
+      background: rgba(244, 63, 94, 0.03);
+    }
+    .unit-card[data-unit="6"]::before { background: var(--color-incorrect); }
+    .unit-card[data-unit="6"] .unit-number { color: var(--color-incorrect); }
+    .unit-card[data-unit="6"]:hover {
+      border-style: solid;
+      border-color: var(--color-incorrect);
+      background: rgba(244, 63, 94, 0.08);
+    }
+
+    /* PRACTICE SCREEN (DUOLINGO UI) */
+    .screen {
+      display: none;
+      width: 100%;
+      flex-direction: column;
+      flex-grow: 1;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    
+    .screen.active {
+      display: flex;
+    }
+    
+    /* Top Bar in practice */
+    .practice-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 0;
+      width: 100%;
+      margin-bottom: 24px;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5rem;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-smooth);
+    }
+    
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+    }
+    
+    .progress-bar-container {
+      flex-grow: 1;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      position: relative;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #10b981, #3b82f6);
+      border-radius: 10px;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 10px;
+      background: rgba(255, 255, 255, 0.3);
+      filter: blur(2px);
+    }
+    
+    .hearts-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--color-fire);
+    }
+    
+    .sound-toggle {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.2rem;
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-smooth);
+    }
+    
+    .sound-toggle:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+    }
+    
+    /* Main Question Card */
+    .question-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      margin-bottom: 24px;
+      animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .question-tag {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--color-primary);
+      padding: 4px 10px;
+      background: rgba(99, 102, 241, 0.1);
+      border-radius: 12px;
+      align-self: flex-start;
+      border: 1px solid rgba(99, 102, 241, 0.2);
+    }
+    
+    .question-text {
+      font-family: var(--font-serif);
+      font-size: 1.35rem;
+      line-height: 1.6;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    /* Options Layout */
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .option-btn {
+      background: rgba(255, 255, 255, 0.02);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      text-align: left;
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: var(--transition-elastic);
+      outline: none;
+    }
+    
+    .option-btn:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+    
+    .option-btn:active {
+      transform: scale(0.99);
+    }
+    
+    .option-btn.selected {
+      background: rgba(99, 102, 241, 0.08);
+      border-color: var(--color-primary);
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.15);
+    }
+    
+    .option-key {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      transition: var(--transition-smooth);
+    }
+    
+    .option-btn.selected .option-key {
+      background: var(--color-primary);
+      color: #fff;
+      border-color: var(--color-primary);
+    }
+    
+    .option-text {
+      flex-grow: 1;
+    }
+
+    /* FOOTER CONTROL BAR (DUOLINGO STICKY BAR) */
+    .practice-footer {
+      width: 100vw;
+      margin-left: calc(-50vw + 50%);
+      background: #0d1527;
+      border-top: 2px solid var(--border-color);
+      padding: 24px 16px;
+      display: flex;
+      justify-content: center;
+      position: sticky;
+      bottom: 0;
+      z-index: 100;
+      box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+    }
+    
+    .footer-content {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .action-btn-primary {
+      background: var(--color-primary);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 16px 36px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition-elastic);
+      min-width: 150px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+    
+    .action-btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+    
+    .action-btn-primary:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+    
+    .action-btn-primary:disabled {
+      background: #1e293b;
+      color: #64748b;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    
+    /* Correct/Incorrect Bottom Sliding Panel */
+    .feedback-panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 24px 16px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: slideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    
+    .feedback-panel.active {
+      display: flex;
+    }
+    
+    .feedback-panel.correct {
+      background: #022c22;
+      border-top: 2px solid #065f46;
+    }
+    
+    .feedback-panel.incorrect {
+      background: #450a0a;
+      border-top: 2px solid #991b1b;
+    }
+    
+    .feedback-content {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    
+    .feedback-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .correct .feedback-icon {
+      background: #10b981;
+      color: #fff;
+    }
+    
+    .incorrect .feedback-icon {
+      background: #f43f5e;
+      color: #fff;
+    }
+    
+    .feedback-text {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .feedback-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      font-family: var(--font-serif);
+    }
+    
+    .correct .feedback-title { color: #34d399; }
+    .incorrect .feedback-title { color: #fca5a5; }
+    
+    .feedback-desc {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: var(--text-primary);
+      max-height: 80px;
+      overflow-y: auto;
+    }
+    
+    .feedback-btn {
+      align-self: center;
+      padding: 16px 36px;
+      border: none;
+      border-radius: var(--radius-md);
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      min-width: 140px;
+      transition: var(--transition-elastic);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    
+    .correct .feedback-btn {
+      background: #10b981;
+      color: #fff;
+    }
+    
+    .correct .feedback-btn:hover {
+      background: #059669;
+      transform: translateY(-2px);
+    }
+    
+    .incorrect .feedback-btn {
+      background: #f43f5e;
+      color: #fff;
+    }
+    
+    .incorrect .feedback-btn:hover {
+      background: #e11d48;
+      transform: translateY(-2px);
+    }
+    
+    .feedback-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* COMPLETION SCREEN (CONGRATS POPUP) */
+    .completion-container {
+      text-align: center;
+      margin: auto 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      padding: 40px 20px;
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .trophy-glow {
+      font-size: 5rem;
+      position: relative;
+      animation: float 3s ease-in-out infinite;
+      filter: drop-shadow(0 0 15px rgba(234, 179, 8, 0.4));
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .completion-container h2 {
+      font-family: var(--font-serif);
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fde047 0%, #f97316 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .completion-container p {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      max-width: 440px;
+      line-height: 1.6;
+    }
+    
+    .score-table {
+      width: 100%;
+      max-width: 380px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .score-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    
+    .score-row:last-child {
+      border-bottom: none;
+    }
+    
+    .score-label {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+    
+    .score-value {
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+    
+    .score-value.green { color: var(--color-correct); }
+    .score-value.yellow { color: var(--color-earth); }
+    
+    .btn-dashboard {
+      background: linear-gradient(135deg, var(--color-primary), #4f46e5);
+      color: #fff;
+      border: none;
+      padding: 16px 40px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+      transition: var(--transition-elastic);
+    }
+    
+    .btn-dashboard:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    }
+
+    /* CONFIRM DIALOG */
+    .dialog-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    
+    .dialog-overlay.active {
+      display: flex;
+    }
+    
+    .dialog-card {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    .dialog-card h3 {
+      font-family: var(--font-serif);
+      font-size: 1.35rem;
+      margin-bottom: 12px;
+    }
+    
+    .dialog-card p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    
+    .dialog-actions {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .dialog-btn {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+    }
+    
+    .dialog-btn-cancel {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+    }
+    
+    .dialog-btn-cancel:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .dialog-btn-confirm {
+      background: var(--color-incorrect);
+      color: #fff;
+    }
+    
+    .dialog-btn-confirm:hover {
+      background: #e11d48;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- HEADER -->
+    <header id="main-header">
+      <h1>岐黄五行针</h1>
+      <p>中医基础理论 · 五行学说交互练习系统</p>
+    </header>
+    
+    <!-- SCREEN 1: DASHBOARD -->
+    <main id="dashboard-screen" class="dashboard screen active">
+      
+      <!-- LEFT SECTION: STUDY HUB -->
+      <section class="study-hub">
+        
+        <!-- Interactive SVG Chart -->
+        <div class="glass-card">
+          <div class="svg-container">
+            <svg id="wuxing-svg" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <!-- Shadows for Glowing Elements -->
+                <filter id="shadow-glow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="4" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
+              
+              <!-- Outer Generation Ring Underlay -->
+              <circle cx="160" cy="160" r="100" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="8" />
+              
+              <!-- Curved Sheng (Generation) Paths -->
+              <!-- Wood -> Fire -->
+              <path id="path-sheng-wood-fire" d="M 160 60 A 100 100 0 0 1 255.1 129.1" fill="none" stroke="rgba(234, 179, 8, 0.08)" stroke-width="2.5" stroke-linecap="round" />
+              <!-- Fire -> Earth -->
+              <path id="path-sheng-fire-earth" d="M 255.1 129.1 A 100 100 0 0 1 218.8 240.9" fill="none" stroke="rgba(234, 179, 8, 0.08)" stroke-width="2.5" stroke-linecap="round" />
+              <!-- Earth -> Metal -->
+              <path id="path-sheng-earth-metal" d="M 218.8 240.9 A 100 100 0 0 1 101.2 240.9" fill="none" stroke="rgba(234, 179, 8, 0.08)" stroke-width="2.5" stroke-linecap="round" />
+              <!-- Metal -> Water -->
+              <path id="path-sheng-metal-water" d="M 101.2 240.9 A 100 100 0 0 1 64.9 129.1" fill="none" stroke="rgba(234, 179, 8, 0.08)" stroke-width="2.5" stroke-linecap="round" />
+              <!-- Water -> Wood -->
+              <path id="path-sheng-water-wood" d="M 64.9 129.1 A 100 100 0 0 1 160 60" fill="none" stroke="rgba(234, 179, 8, 0.08)" stroke-width="2.5" stroke-linecap="round" />
+
+              <!-- Inner Ke (Restriction) Star Lines -->
+              <!-- Wood -> Earth -->
+              <path id="path-ke-wood-earth" d="M 160 60 L 218.8 240.9" fill="none" stroke="rgba(167, 139, 250, 0.08)" stroke-width="2" stroke-linecap="round" />
+              <!-- Earth -> Water -->
+              <path id="path-ke-earth-water" d="M 218.8 240.9 L 64.9 129.1" fill="none" stroke="rgba(167, 139, 250, 0.08)" stroke-width="2" stroke-linecap="round" />
+              <!-- Water -> Fire -->
+              <path id="path-ke-water-fire" d="M 64.9 129.1 L 255.1 129.1" fill="none" stroke="rgba(167, 139, 250, 0.08)" stroke-width="2" stroke-linecap="round" />
+              <!-- Fire -> Metal -->
+              <path id="path-ke-fire-metal" d="M 255.1 129.1 L 101.2 240.9" fill="none" stroke="rgba(167, 139, 250, 0.08)" stroke-width="2" stroke-linecap="round" />
+              <!-- Metal -> Wood -->
+              <path id="path-ke-metal-wood" d="M 101.2 240.9 L 160 60" fill="none" stroke="rgba(167, 139, 250, 0.08)" stroke-width="2" stroke-linecap="round" />
+
+              <!-- Node Elements -->
+              <!-- Wood -->
+              <g class="node-group" id="node-wood" data-element="wood">
+                <circle cx="160" cy="60" r="23" fill="#042f2e" stroke="#10b981" stroke-width="2.5" class="node-circle" />
+                <text x="160" y="60" dy="5" text-anchor="middle" fill="#34d399" font-weight="bold" font-size="14" class="node-text">木</text>
+              </g>
+              
+              <!-- Fire -->
+              <g class="node-group" id="node-fire" data-element="fire">
+                <circle cx="255.1" cy="129.1" r="23" fill="#450a0a" stroke="#f43f5e" stroke-width="2.5" class="node-circle" />
+                <text x="255.1" y="129.1" dy="5" text-anchor="middle" fill="#fb7185" font-weight="bold" font-size="14" class="node-text">火</text>
+              </g>
+              
+              <!-- Earth -->
+              <g class="node-group" id="node-earth" data-element="earth">
+                <circle cx="218.8" cy="240.9" r="23" fill="#451a03" stroke="#eab308" stroke-width="2.5" class="node-circle" />
+                <text x="218.8" y="240.9" dy="5" text-anchor="middle" fill="#fde047" font-weight="bold" font-size="14" class="node-text">土</text>
+              </g>
+              
+              <!-- Metal -->
+              <g class="node-group" id="node-metal" data-element="metal">
+                <circle cx="101.2" cy="240.9" r="23" fill="#1e293b" stroke="#cbd5e1" stroke-width="2.5" class="node-circle" />
+                <text x="101.2" y="240.9" dy="5" text-anchor="middle" fill="#f1f5f9" font-weight="bold" font-size="14" class="node-text">金</text>
+              </g>
+              
+              <!-- Water -->
+              <g class="node-group" id="node-water" data-element="water">
+                <circle cx="64.9" cy="129.1" r="23" fill="#172554" stroke="#3b82f6" stroke-width="2.5" class="node-circle" />
+                <text x="64.9" y="129.1" dy="5" text-anchor="middle" fill="#60a5fa" font-weight="bold" font-size="14" class="node-text">水</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+        
+        <!-- Attributes Detail Panel -->
+        <div class="glass-card attributes-card" id="attributes-panel">
+          <div class="empty-prompt" id="attr-empty-prompt">
+            💡 <strong>学习提示</strong><br>
+            点击上方的五行节点（木、火、土、金、水），可以查看各要素对应的自然界与人体归类属性，并高亮显示其相生相克的互动轨迹。
+          </div>
+          <div id="attr-content" style="display:none; width:100%;">
+            <div class="attributes-header">
+              <span class="element-indicator" id="attr-element-indicator"></span>
+              <h3 id="attr-title">五行之【木】属性归类</h3>
+            </div>
+            
+            <div class="attrs-grid">
+              <div class="attr-item"><span class="attr-label">五脏 (Zang)</span><span class="attr-value" id="val-zang">-</span></div>
+              <div class="attr-item"><span class="attr-label">五腑 (Fu)</span><span class="attr-value" id="val-fu">-</span></div>
+              <div class="attr-item"><span class="attr-label">五官 (Sensory)</span><span class="attr-value" id="val-sense">-</span></div>
+              <div class="attr-item"><span class="attr-label">五体 (Tissue)</span><span class="attr-value" id="val-tissue">-</span></div>
+              <div class="attr-item"><span class="attr-label">五华 (Manifest)</span><span class="attr-value" id="val-manifest">-</span></div>
+              <div class="attr-item"><span class="attr-label">五志 (Emotion)</span><span class="attr-value" id="val-emotion">-</span></div>
+              <div class="attr-item"><span class="attr-label">五液 (Fluid)</span><span class="attr-value" id="val-fluid">-</span></div>
+              <div class="attr-item"><span class="attr-label">五季 (Season)</span><span class="attr-value" id="val-season">-</span></div>
+              <div class="attr-item"><span class="attr-label">五方 (Direction)</span><span class="attr-value" id="val-direction">-</span></div>
+              <div class="attr-item"><span class="attr-label">五气 (Climatic)</span><span class="attr-value" id="val-qi">-</span></div>
+              <div class="attr-item"><span class="attr-label">五色 (Color)</span><span class="attr-value" id="val-color">-</span></div>
+              <div class="attr-item"><span class="attr-label">五味 (Taste)</span><span class="attr-value" id="val-taste">-</span></div>
+            </div>
+            
+            <div class="rel-desc-box">
+              <div><span class="rel-desc-title">🔄 相生关系：</span><span id="desc-sheng">-</span></div>
+              <div style="margin-top: 6px;"><span class="rel-desc-title">⚡ 相克关系：</span><span id="desc-ke">-</span></div>
+            </div>
+          </div>
+        </div>
+        
+      </section>
+      
+      <!-- RIGHT SECTION: STATS & UNIT CARDS -->
+      <section class="unit-panel">
+        
+        <!-- Quick Stats -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <span class="stat-number" id="stat-total-practiced">0</span>
+            <span class="stat-title">已练题目</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-number" id="stat-accuracy">0%</span>
+            <span class="stat-title">初始正确率</span>
+          </div>
+          <div class="stat-card" style="position: relative;">
+            <span class="stat-number" id="stat-streak">0 🔥</span>
+            <span class="stat-title">当前连击</span>
+          </div>
+        </div>
+        
+        <!-- Unit Cards List -->
+        <div class="unit-list">
+          
+          <div class="unit-card" data-unit="1">
+            <div class="unit-info">
+              <span class="unit-number">第一单元</span>
+              <span class="unit-name">五行归类 · 宇宙与人体</span>
+              <span class="unit-desc">练习五脏六腑、五体五官、五季五味等属性的对应归类。</span>
+            </div>
+            <div class="progress-wrapper">
+              <svg class="progress-ring" width="44" height="44">
+                <circle class="progress-ring__circle" stroke="rgba(255,255,255,0.05)" stroke-width="3" fill="transparent" r="18" cx="22" cy="22"/>
+                <circle id="ring-u1" class="progress-ring__circle" stroke="var(--color-wood)" stroke-width="3.5" stroke-linecap="round" fill="transparent" r="18" cx="22" cy="22" stroke-dasharray="113.1" stroke-dashoffset="113.1"/>
+              </svg>
+              <span class="progress-text" id="text-ring-u1">0%</span>
+            </div>
+          </div>
+          
+          <div class="unit-card" data-unit="2">
+            <div class="unit-info">
+              <span class="unit-number">第二单元</span>
+              <span class="unit-name">生克关系 · 生克乘侮机制</span>
+              <span class="unit-desc">练习相生相克序列，理解母子关系及乘侮（反克）的异常调节机制。</span>
+            </div>
+            <div class="progress-wrapper">
+              <svg class="progress-ring" width="44" height="44">
+                <circle class="progress-ring__circle" stroke="rgba(255,255,255,0.05)" stroke-width="3" fill="transparent" r="18" cx="22" cy="22"/>
+                <circle id="ring-u2" class="progress-ring__circle" stroke="var(--color-fire)" stroke-width="3.5" stroke-linecap="round" fill="transparent" r="18" cx="22" cy="22" stroke-dasharray="113.1" stroke-dashoffset="113.1"/>
+              </svg>
+              <span class="progress-text" id="text-ring-u2">0%</span>
+            </div>
+          </div>
+          
+          <div class="unit-card" data-unit="3">
+            <div class="unit-info">
+              <span class="unit-number">第三单元</span>
+              <span class="unit-name">脏腑传变 · 临床病理规律</span>
+              <span class="unit-desc">学习并练习“母病及子”、“子病及母（子盗母气）”与相乘相侮传变病案。</span>
+            </div>
+            <div class="progress-wrapper">
+              <svg class="progress-ring" width="44" height="44">
+                <circle class="progress-ring__circle" stroke="rgba(255,255,255,0.05)" stroke-width="3" fill="transparent" r="18" cx="22" cy="22"/>
+                <circle id="ring-u3" class="progress-ring__circle" stroke="var(--color-earth)" stroke-width="3.5" stroke-linecap="round" fill="transparent" r="18" cx="22" cy="22" stroke-dasharray="113.1" stroke-dashoffset="113.1"/>
+              </svg>
+              <span class="progress-text" id="text-ring-u3">0%</span>
+            </div>
+          </div>
+          
+          <div class="unit-card" data-unit="4">
+            <div class="unit-info">
+              <span class="unit-number">第四单元</span>
+              <span class="unit-name">治则治法 · 临床指导应用</span>
+              <span class="unit-desc">练习“虚则补其母，实则泻其子”与“滋水涵木”、“益火补土”、“抑木扶土”等治法。</span>
+            </div>
+            <div class="progress-wrapper">
+              <svg class="progress-ring" width="44" height="44">
+                <circle class="progress-ring__circle" stroke="rgba(255,255,255,0.05)" stroke-width="3" fill="transparent" r="18" cx="22" cy="22"/>
+                <circle id="ring-u4" class="progress-ring__circle" stroke="var(--color-water)" stroke-width="3.5" stroke-linecap="round" fill="transparent" r="18" cx="22" cy="22" stroke-dasharray="113.1" stroke-dashoffset="113.1"/>
+              </svg>
+              <span class="progress-text" id="text-ring-u4">0%</span>
+            </div>
+          </div>
+          
+          <div class="unit-card" data-unit="5">
+            <div class="unit-info">
+              <span class="unit-number">综合大考</span>
+              <span class="unit-name">五行大满贯 · 综合练习</span>
+              <span class="unit-desc">按比例（30:30:20:20）抽调各单元题目组成综合测验。支持无限练习。</span>
+            </div>
+            <div class="progress-wrapper">
+              <svg class="progress-ring" width="44" height="44">
+                <circle class="progress-ring__circle" stroke="rgba(255,255,255,0.05)" stroke-width="3" fill="transparent" r="18" cx="22" cy="22"/>
+                <circle id="ring-u5" class="progress-ring__circle" stroke="url(#sheng-grad)" stroke-width="3.5" stroke-linecap="round" fill="transparent" r="18" cx="22" cy="22" stroke-dasharray="113.1" stroke-dashoffset="113.1"/>
+              </svg>
+              <span class="progress-text" id="text-ring-u5">0%</span>
+            </div>
+          </div>
+          
+          <!-- Missed questions arena (hidden initially) -->
+          <div class="unit-card" data-unit="6" id="missed-unit-card" style="display: none;">
+            <div class="unit-info">
+              <span class="unit-number">错题重练场</span>
+              <span class="unit-name">记忆消灭战</span>
+              <span class="unit-desc" id="missed-count-desc">包含 0 道做错的问题，答对即可完美消除。</span>
+            </div>
+            <div class="progress-wrapper" style="color: var(--color-incorrect);">
+              💀
+            </div>
+          </div>
+          
+        </div>
+      </section>
+      
+    </main>
+    
+    <!-- SCREEN 2: PRACTICE SCREEN -->
+    <main id="practice-screen" class="screen">
+      
+      <!-- Top header layout -->
+      <div class="practice-header">
+        <button class="close-btn" id="practice-close-btn" aria-label="退出练习" title="退出练习">✕</button>
+        
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="practice-progress-bar"></div>
+        </div>
+        
+        <div class="hearts-box" id="practice-hearts-box">
+          <span id="hearts-count">0</span> 🔥
+        </div>
+        
+        <button class="sound-toggle" id="sound-toggle-btn" aria-label="声音开关" title="开/关声音">🔊</button>
+      </div>
+      
+      <!-- Question content box -->
+      <div class="question-card" id="active-question-card">
+        <span class="question-tag" id="active-question-tag">单选题</span>
+        <h2 class="question-text" id="active-question-text">加载中...</h2>
+        
+        <div class="options-list" id="active-options-list">
+          <!-- Dynamically generated buttons go here -->
+        </div>
+      </div>
+      
+      <!-- Sticky Footer Control panel -->
+      <footer class="practice-footer">
+        <!-- Normal select & check layout -->
+        <div class="footer-content" id="footer-normal-actions">
+          <span style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500;" id="keyboard-hint">提示: 支持键盘 A, B, C, D 键选择</span>
+          <button class="action-btn-primary" id="footer-check-btn" disabled>检查</button>
+        </div>
+        
+        <!-- Feedback panel slides up inside the footer -->
+        <div class="feedback-panel" id="feedback-sliding-panel">
+          <div class="feedback-content">
+            <div class="feedback-icon" id="feedback-panel-icon">✓</div>
+            <div class="feedback-text">
+              <span class="feedback-title" id="feedback-panel-title">答对了！</span>
+              <div class="feedback-desc" id="feedback-panel-desc">解析加载中...</div>
+            </div>
+            <button class="feedback-btn" id="feedback-continue-btn">继续</button>
+          </div>
+        </div>
+      </footer>
+      
+    </main>
+    
+    <!-- SCREEN 3: COMPLETION SCREEN -->
+    <main id="completion-screen" class="screen">
+      <div class="glass-card completion-container">
+        <div class="trophy-glow">🏆</div>
+        <h2 id="completion-title">精彩的练习！</h2>
+        <p id="completion-subtitle">你已经成功将队列中所有难题全部攻克，达成了 100% 正确！</p>
+        
+        <div class="score-table">
+          <div class="score-row">
+            <span class="score-label">本次练习关卡</span>
+            <span class="score-value" id="val-comp-unit">第一单元</span>
+          </div>
+          <div class="score-row">
+            <span class="score-label">正确通关题数</span>
+            <span class="score-value yellow" id="val-comp-solved">10 题</span>
+          </div>
+          <div class="score-row">
+            <span class="score-label">初始正确率</span>
+            <span class="score-value green" id="val-comp-accuracy">85%</span>
+          </div>
+        </div>
+        
+        <button class="btn-dashboard" id="btn-comp-finish">返回仪表盘</button>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Exit Confirm Dialog -->
+  <div class="dialog-overlay" id="exit-confirm-dialog">
+    <div class="dialog-card">
+      <h3>确定要退出练习吗？</h3>
+      <p>现在退出将无法保存本次练习获得的连击和通关点数，错题重练数据将不会保存。</p>
+      <div class="dialog-actions">
+        <button class="dialog-btn dialog-btn-cancel" id="btn-exit-cancel">取消</button>
+        <button class="dialog-btn dialog-btn-confirm" id="btn-exit-confirm">确定退出</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. DATA DEFINITIONS & DATABASE
+    // ==========================================
+    const WUXING_DATA = {
+      wood: {
+        name: '木',
+        zang: '肝', fu: '胆', sense: '目', tissue: '筋', manifest: '爪',
+        emotion: '怒', sound: '呼', fluid: '泪', pulse: '弦',
+        season: '春', direction: '东', qi: '风', stage: '生',
+        color: '青', taste: '酸', music: '角'
+      },
+      fire: {
+        name: '火',
+        zang: '心', fu: '小肠', sense: '舌', tissue: '脉', manifest: '面',
+        emotion: '喜', sound: '笑', fluid: '汗', pulse: '洪',
+        season: '夏', direction: '南', qi: '暑', stage: '长',
+        color: '赤', taste: '苦', music: '徵'
+      },
+      earth: {
+        name: '土',
+        zang: '脾', fu: '胃', sense: '口', tissue: '肉', manifest: '唇',
+        emotion: '思', sound: '歌', fluid: '涎', pulse: '缓',
+        season: '长夏', direction: '中', qi: '湿', stage: '化',
+        color: '黄', taste: '甘', music: '宫'
+      },
+      metal: {
+        name: '金',
+        zang: '肺', fu: '大肠', sense: '鼻', tissue: '皮毛', manifest: '毛',
+        emotion: '悲/忧', sound: '哭', fluid: '涕', pulse: '浮',
+        season: '秋', direction: '西', qi: '燥', stage: '收',
+        color: '白', taste: '辛', music: '商'
+      },
+      water: {
+        name: '水',
+        zang: '肾', fu: '膀胱', sense: '耳', tissue: '骨', manifest: '发',
+        emotion: '恐', sound: '呻', fluid: '唾', pulse: '沉',
+        season: '冬', direction: '北', qi: '寒', stage: '藏',
+        color: '黑', taste: '咸', music: '羽'
+      }
+    };
+
+    const HANDCRAFTED_QUESTIONS = [
+      // Unit 1 (属性归类)
+      {
+        id: "hc_u1_1",
+        unit: 1,
+        question: "某患者面色萎黄，食欲不振，大便溏薄，并伴有思虑过度。按照五行学说归类，其病变脏腑属于哪一个要素？",
+        options: ["木", "火", "土", "金", "水"],
+        answer: 2,
+        explanation: "面色黄、食欲不振（纳呆）、大便溏薄、思虑过度，均指向五脏中的‘脾’。脾在五行中属‘土’。"
+      },
+      {
+        id: "hc_u1_2",
+        unit: 1,
+        question: "根据五色诊法，患者面色“青白”相兼，常提示下列哪两个脏腑的功能失调？",
+        options: ["肝与肺", "心与肾", "脾与肺", "肝与肾"],
+        answer: 0,
+        explanation: "在五行归类中，青色属木归于肝，白色属金归于肺。因此，面色青白相兼常提示肝肺功能失调。"
+      },
+      {
+        id: "hc_u1_3",
+        unit: 1,
+        question: "下列五行对应关系中，属于“水”要素对应的五官、五体、五志是：",
+        options: ["耳、骨、恐", "目、筋、怒", "鼻、皮毛、悲", "口、肉、思"],
+        answer: 0,
+        explanation: "水对应的五脏是肾，肾开窍于耳，在体合骨，在志为恐。因此“耳、骨、恐”符合水的属性。"
+      },
+      {
+        id: "hc_u1_4",
+        unit: 1,
+        question: "《黄帝内经》中“西方白色，入通于肺，开窍于鼻...”，下列各组事物中与此同属“金”的是：",
+        options: ["秋季、燥气、悲志、哭声", "春季、风气、怒志、呼声", "冬季、寒气、恐志、呻声", "夏季、暑气、喜志、笑声"],
+        answer: 0,
+        explanation: "西方、白色、肺、鼻均属五行之‘金’。金对应的五季为秋，五气为燥，五志为悲，五声为哭。故选项A正确。"
+      },
+      {
+        id: "hc_u1_5",
+        unit: 1,
+        question: "某患者因长期情绪抑郁，近期常感眼部干涩，指甲干枯脆裂。根据五行归类，应首先考虑哪一脏的精血不足？",
+        options: ["肝", "心", "脾", "肺"],
+        answer: 0,
+        explanation: "情绪抑郁（怒/郁）、眼部干涩（目）、指甲脆裂（爪），均与“木”对应的脏腑——肝有关（肝开窍于目，其华在爪）。"
+      },
+      
+      // Unit 2 (生克异常)
+      {
+        id: "hc_u2_1",
+        unit: 2,
+        question: "《素问·五运行大论》中提到：“克我者为所不胜，我克者为所胜”。以“土”为例，土的“所胜”和“所不胜”分别是：",
+        options: ["水、木", "木、水", "金、火", "火、金"],
+        answer: 0,
+        explanation: "土克水，我克者为所胜，故土的所胜是水；木克土，克我者为所不胜，故土的所不胜是木。答案为水、木。"
+      },
+      {
+        id: "hc_u2_2",
+        unit: 2,
+        question: "根据五行生克规律，‘生我者为母，我生者为子’。下列关于“金”的“母”和“子”表述正确的是：",
+        options: ["土为母，水为子", "木为母，火为子", "水为母，木为子", "火为母，土为子"],
+        answer: 0,
+        explanation: "土生金（脾土生肺金），故金之母为土；金生水（肺金生肾水），故金之子为水。答案为土为母，水为子。"
+      },
+      {
+        id: "hc_u2_3",
+        unit: 2,
+        question: "下列各组五行相克顺序的排列，正确的是：",
+        options: ["木 → 土 → 水 → 火 → 金 → 木", "木 → 火 → 土 → 金 → 水 → 木", "金 → 木 → 水 → 火 → 土 → 金", "水 → 木 → 火 → 金 → 土 → 水"],
+        answer: 0,
+        explanation: "五行相克顺序是：木克土，土克水，水克火，火克金，金克木。形成环形排列为：木→土→水→火→金→木。"
+      },
+      {
+        id: "hc_u2_4",
+        unit: 2,
+        question: "在五行相克关系中，若“木”过度克制“土”，导致土气受损，这种克制关系的异常称为：",
+        options: ["相乘", "相侮", "母病及子", "子盗母气"],
+        answer: 0,
+        explanation: "相乘是指五行中某一行对其所胜一行的过度克制。木克土，木过度克土称为木乘土（相乘）。"
+      },
+      {
+        id: "hc_u2_5",
+        unit: 2,
+        question: "若“木”气过亢，反向克制原本克制它的“金”，这种克制关系的异常称为：",
+        options: ["相侮", "相乘", "反克", "相生"],
+        answer: 0,
+        explanation: "相侮是指五行中某一行对其所不胜一行的反向克制，又称“反克”。金本克木，木亢反克金称为木侮金（相侮）。"
+      },
+      
+      // Unit 3 (脏腑传变)
+      {
+        id: "hc_u3_1",
+        unit: 3,
+        question: "临床上，脾虚导致肺气虚弱，进而引起慢性咳嗽、气短、神疲乏力。这种病理传变规律属于：",
+        options: ["母病及子", "子病及母", "相乘传变", "相侮传变"],
+        answer: 0,
+        explanation: "脾属土，肺属金，土生金，脾为肺之母。脾虚累及肺虚属于母病及子。"
+      },
+      {
+        id: "hc_u3_2",
+        unit: 3,
+        question: "患者长期肝火亢盛，近期出现咳嗽、痰中带血。医生诊断为“肝火犯肺”，这在五行病理传变中属于：",
+        options: ["相侮传变（木亢侮金）", "相乘传变（木旺乘土）", "子病及母", "母病及子"],
+        answer: 0,
+        explanation: "肝属木，肺属金，金本克木。现肝火过旺反向克制并损伤肺金，属于木亢侮金，即相侮传变（临床又称木火刑金）。"
+      },
+      {
+        id: "hc_u3_3",
+        unit: 3,
+        question: "长期心血不足，逐渐累及肝脏，导致肝血亦虚，出现心悸、失眠、多梦、面色无华、爪甲色淡。此病机在五行中属于：",
+        options: ["子病及母", "母病及子", "相乘传变", "相侮传变"],
+        answer: 0,
+        explanation: "心属火，肝属木，木生火，肝木为母，心火为子。心病（子）累及肝（母），属于子病及母。"
+      },
+      {
+        id: "hc_u3_4",
+        unit: 3,
+        question: "患者胃本虚弱，近因工作压力大，时常恼怒，导致胃脘胀痛、嗳气频频，医生诊断为“土虚木乘”。这属于五行中的：",
+        options: ["脾胃自身虚弱，承受不住正常的肝木克制", "肝气过旺，过度克制了正常的脾胃之土", "脾胃过旺，反向克制了肝木", "肺金虚弱，不能克制肝木"],
+        answer: 0,
+        explanation: "“土虚木乘”是指脾胃之土自身虚弱，承受不住正常的肝木克制，因而被克伐受损。若是肝木本身过旺克伐脾胃，则称“木旺乘土”。"
+      },
+      {
+        id: "hc_u3_5",
+        unit: 3,
+        question: "患者咳喘多年，近日病情加重，不仅气短喘促，更见腰膝酸软、听力减退。该病变由肺及肾，属于五行中的：",
+        options: ["母病及子", "子病及母", "相乘传变", "相侮传变"],
+        answer: 0,
+        explanation: "肺属金，肾属水，金生水，肺金为母，肾水为子。病变由肺（母）及肾（子）传递，属于母病及子传变。"
+      },
+      
+      // Unit 4 (治则治法)
+      {
+        id: "hc_u4_1",
+        unit: 4,
+        question: "根据五行相生关系的治疗原则，当肝阴不足累及肾阴，或肾阴不足导致肝阳上亢时，常用“滋水涵木”法。这体现了什么治疗原则？",
+        options: ["虚则补其母", "实则泻其子", "抑强", "扶弱"],
+        answer: 0,
+        explanation: "“滋水涵木”法是通过滋养肾阴（水）以养肝阴（木）的方法，适用于肾阴亏虚不能涵养肝木的证候，属于“虚则补其母”的体现。"
+      },
+      {
+        id: "hc_u4_2",
+        unit: 4,
+        question: "临床上，温肾阳以暖脾阳的治疗方法，在中医学治法中被称为：",
+        options: ["益火补土法", "培土生金法", "滋水涵木法", "培土制水法"],
+        answer: 0,
+        explanation: "益火补土法是指温肾阳（命门之火，即肾阳）以暖脾土的方法。主要适用于脾肾阳虚证。这里的‘火’指命门之火。"
+      },
+      {
+        id: "hc_u4_3",
+        unit: 4,
+        question: "患者慢性咳嗽气短，咳痰清稀，伴有纳呆，腹胀，便溏，舌淡苔白。若采用“健脾益气以补益肺气”的疗法，在五行中称为：",
+        options: ["培土生金法", "金水相生法", "抑木扶土法", "培土制水法"],
+        answer: 0,
+        explanation: "脾属土，肺属金，土生金。健脾（培土）益气以补益肺气（生金）的方法称为“培土生金法”，主要用于脾肺两虚证。"
+      },
+      {
+        id: "hc_u4_4",
+        unit: 4,
+        question: "用疏肝理气配合健脾运湿的方法治疗肝气犯脾引起的腹痛泄泻，这种治法在五行相克治法中属于：",
+        options: ["抑木扶土法", "培土制水法", "佐金平木法", "泻南补北法"],
+        answer: 0,
+        explanation: "肝属木，脾属土，木克土。疏肝（抑木）健脾（扶土）法被称为“抑木扶土法”，用于治疗肝气犯脾、肝脾不和证。"
+      },
+      {
+        id: "hc_u4_5",
+        unit: 4,
+        question: "患者常感手足心热，心烦失眠，多梦易醒，口干咽燥，伴有腰酸耳鸣，尿黄。若采用“泻心火、滋肾水”的方法治疗，其治法称为：",
+        options: ["泻南补北法", "佐金平木法", "培土制水法", "抑木扶土法"],
+        answer: 0,
+        explanation: "南方属火对应心，北方属水对应肾。泻心火（泻南）、滋肾水（补北）的方法称为“泻南补北法”（又称交通心肾/泻火补水法），用于治疗心肾不交证。"
+      }
+    ];
+
+    // ==========================================
+    // 2. AUDIO SYNTHESIZER (WEB AUDIO API)
+    // ==========================================
+    const SoundEngine = {
+      ctx: null,
+      enabled: true,
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      },
+      playCorrect() {
+        if (!this.enabled) return;
+        this.init();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        
+        const now = this.ctx.currentTime;
+        const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5 (Pleasant major arpeggio)
+        
+        notes.forEach((freq, index) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + index * 0.08);
+          
+          gain.gain.setValueAtTime(0.12, now + index * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.08 + 0.45);
+          
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + index * 0.08);
+          osc.stop(now + index * 0.08 + 0.5);
+        });
+      },
+      playIncorrect() {
+        if (!this.enabled) return;
+        this.init();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        
+        const now = this.ctx.currentTime;
+        const notes = [130.81, 104.83]; // C3, G#2 (Buzzing down sound)
+        
+        notes.forEach((freq, index) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const filter = this.ctx.createBiquadFilter();
+          
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(freq, now + index * 0.12);
+          
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(250, now);
+          
+          gain.gain.setValueAtTime(0.18, now + index * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.12 + 0.35);
+          
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          
+          osc.start(now + index * 0.12);
+          osc.stop(now + index * 0.12 + 0.4);
+        });
+      },
+      playClick() {
+        if (!this.enabled) return;
+        this.init();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+        
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.04);
+        
+        gain.gain.setValueAtTime(0.04, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.04);
+        
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      }
+    };
+
+    // ==========================================
+    // 3. DYNAMIC QUESTION GENERATION ALGORITHM
+    // ==========================================
+    const QuestionGenerator = {
+      // Shuffles options while keeping correct answer index tracked
+      shuffle(options, correctVal) {
+        const uniq = [...new Set(options)];
+        uniq.sort(() => Math.random() - 0.5);
+        return {
+          options: uniq,
+          answer: uniq.indexOf(correctVal)
+        };
+      },
+
+      generate(unit) {
+        // Decide whether to return a handcrafted question or generate one
+        // If Unit 5 (Comprehensive), we delegate to mixed distribution
+        if (unit === 5) {
+          // Weighted random choice: 30% U1, 30% U2, 20% U3, 20% U4
+          const rand = Math.random();
+          let targetUnit = 1;
+          if (rand < 0.3) targetUnit = 1;
+          else if (rand < 0.6) targetUnit = 2;
+          else if (rand < 0.8) targetUnit = 3;
+          else targetUnit = 4;
+          return this.generate(targetUnit);
+        }
+
+        // 50% chance to fetch a handcrafted question if available for the unit
+        const hcList = HANDCRAFTED_QUESTIONS.filter(q => q.unit === unit);
+        if (hcList.length > 0 && Math.random() < 0.4) {
+          const q = hcList[Math.floor(Math.random() * hcList.length)];
+          // Return a copy to avoid mutation
+          return { ...q, options: [...q.options] };
+        }
+
+        // Otherwise, dynamically generate using matrix
+        const elements = ['wood', 'fire', 'earth', 'metal', 'water'];
+        
+        if (unit === 1) {
+          const categories = [
+            { key: 'zang', label: '五脏' },
+            { key: 'fu', label: '五腑' },
+            { key: 'sense', label: '五官' },
+            { key: 'tissue', label: '五体' },
+            { key: 'manifest', label: '五华' },
+            { key: 'emotion', label: '五志' },
+            { key: 'sound', label: '五声' },
+            { key: 'fluid', label: '五液' },
+            { key: 'pulse', label: '五脉' },
+            { key: 'season', label: '五季' },
+            { key: 'direction', label: '五方' },
+            { key: 'qi', label: '五气' },
+            { key: 'stage', label: '五化' },
+            { key: 'color', label: '五色' },
+            { key: 'taste', label: '五味' },
+            { key: 'music', label: '五音' }
+          ];
+
+          const isTypeA = Math.random() > 0.5;
+          const cat = categories[Math.floor(Math.random() * categories.length)];
+          const correctElKey = elements[Math.floor(Math.random() * 5)];
+          const correctEl = WUXING_DATA[correctElKey];
+          const correctVal = correctEl[cat.key];
+
+          if (isTypeA) {
+            // "属于‘木’的五脏是？"
+            const question = `根据五行学说，下列属于“${correctEl.name}”的【${cat.label}】是（ ）`;
+            const options = [correctVal];
+            const otherEls = elements.filter(el => el !== correctElKey);
+            otherEls.forEach(el => options.push(WUXING_DATA[el][cat.key]));
+            const shuffled = this.shuffle(options, correctVal);
+            
+            const explanation = `在五行属性归类中，【${correctEl.name}】对应【${cat.label}】的“${correctVal}”。其他选项中：` +
+              otherEls.map(el => `“${WUXING_DATA[el][cat.key]}”属${WUXING_DATA[el].name}`).join('，') + '。';
+
+            return {
+              id: `dyn_u1_a_${correctElKey}_${cat.key}_${Date.now()}`,
+              unit: 1,
+              question,
+              options: shuffled.options,
+              answer: shuffled.answer,
+              explanation
+            };
+          } else {
+            // "‘筋’在五行中属于？"
+            const question = `在中医五行归类中，【${cat.label}】中的“${correctVal}”在五行中属于（ ）`;
+            const options = elements.map(el => WUXING_DATA[el].name);
+            const answer = elements.indexOf(correctElKey);
+            
+            const explanation = `“${correctVal}”是【${cat.label}】之一。在五行归类中，“${correctVal}”属于【${correctEl.name}】。完整的五行属性对应关系为：` +
+              `木—${WUXING_DATA.wood[cat.key]}，火—${WUXING_DATA.fire[cat.key]}，土—${WUXING_DATA.earth[cat.key]}，金—${WUXING_DATA.metal[cat.key]}，水—${WUXING_DATA.water[cat.key]}。`;
+
+            return {
+              id: `dyn_u1_b_${correctElKey}_${cat.key}_${Date.now()}`,
+              unit: 1,
+              question,
+              options,
+              answer,
+              explanation
+            };
+          }
+        } 
+        
+        else if (unit === 2) {
+          const relations = [
+            { type: 'mother', text: '“{El}”的“母”是' },
+            { type: 'child', text: '“{El}”的“子”是' },
+            { type: '勝', text: '“{El}”的“所胜”（被其克制者）是' },
+            { type: '不胜', text: '“{El}”的“所不胜”（克制其者）是' }
+          ];
+
+          const elIdx = Math.floor(Math.random() * 5);
+          const elKey = elements[elIdx];
+          const elName = WUXING_DATA[elKey].name;
+          const rel = relations[Math.floor(Math.random() * relations.length)];
+          
+          let targetKey = '';
+          let explanation = '';
+          
+          if (rel.type === 'mother') {
+            targetKey = elements[(elIdx + 4) % 5];
+            explanation = `五行相生规律中，“生我者为母”。因为水生木、木生火、火生土、土生金、金生水，所以生“${elName}”的母是“${WUXING_DATA[targetKey].name}”。`;
+          } else if (rel.type === 'child') {
+            targetKey = elements[(elIdx + 1) % 5];
+            explanation = `五行相生规律中，“我生者为子”。因为木生火、火生土、土生金、金生水、水生木，所以“${elName}”所生的子是“${WUXING_DATA[targetKey].name}”。`;
+          } else if (rel.type === '勝') {
+            targetKey = elements[(elIdx + 2) % 5];
+            explanation = `五行相克规律中，“我克者为所胜”。因为木克土、土克水、水克火、火克金、金克木，所以“${elName}”克制的所胜是“${WUXING_DATA[targetKey].name}”。`;
+          } else if (rel.type === '不胜') {
+            targetKey = elements[(elIdx + 3) % 5];
+            explanation = `五行相克规律中，“克我者为所不胜”。因为木克土、土克水、水克火、火克金、金克木，所以克制“${elName}”的所不胜是“${WUXING_DATA[targetKey].name}”。`;
+          }
+
+          const question = `根据五行的生克和母子胜复规律，${rel.text.replace('{El}', elName)}（ ）`;
+          const options = elements.map(el => WUXING_DATA[el].name);
+          const answer = elements.indexOf(targetKey);
+
+          return {
+            id: `dyn_u2_${rel.type}_${elKey}_${Date.now()}`,
+            unit: 2,
+            question,
+            options,
+            answer,
+            explanation
+          };
+        } 
+        
+        else if (unit === 3) {
+          const elIdx = Math.floor(Math.random() * 5);
+          const elKey = elements[elIdx];
+          const el = WUXING_DATA[elKey];
+          
+          const isMotherToChild = Math.random() > 0.5;
+          let targetIdx, relName, explanation;
+          
+          if (isMotherToChild) {
+            targetIdx = (elIdx + 1) % 5;
+            relName = '母病及子';
+            explanation = `“${el.zang}”属${el.name}，“${WUXING_DATA[elements[targetIdx]].zang}”属${WUXING_DATA[elements[targetIdx]].name}。在相生关系中，${el.name}生${WUXING_DATA[elements[targetIdx]].name}，即${el.zang}为母脏，${WUXING_DATA[elements[targetIdx]].zang}为子脏。母脏病变波及子脏，属于“${relName}”传变。`;
+          } else {
+            targetIdx = (elIdx + 4) % 5;
+            relName = '子病及母（子盗母气）';
+            explanation = `“${el.zang}”属${el.name}，“${WUXING_DATA[elements[targetIdx]].zang}”属${WUXING_DATA[elements[targetIdx]].name}。在相生关系中，${WUXING_DATA[elements[targetIdx]].name}生${el.name}，即${WUXING_DATA[elements[targetIdx]].zang}为母脏，${el.zang}为子脏。子脏病变反向影响母脏，属于“${relName}”传变。`;
+          }
+          
+          const question = `在中医病理传变中，若五脏之“${el.zang}”的病变累及“${WUXING_DATA[elements[targetIdx]].zang}”，这种传变规律在五行学说中称为（ ）`;
+          const options = ['母病及子', '子病及母（子盗母气）', '相乘传变', '相侮传变'];
+          const answer = isMotherToChild ? 0 : 1;
+
+          return {
+            id: `dyn_u3_${elKey}_${elements[targetIdx]}_${Date.now()}`,
+            unit: 3,
+            question,
+            options,
+            answer,
+            explanation
+          };
+        } 
+        
+        else { // Unit 4 (治则治法)
+          const therapies = [
+            { name: '滋水涵木法', princ: '虚则补其母', details: '滋养肾阴以养肝阴', path: '水生木', reason: '用于肾阴不足，不能滋养肝木之证。' },
+            { name: '益火补土法', princ: '虚则补其母', details: '温肾阳以暖脾阳', path: '火生土', reason: '临床上指温肾阳（命门之火）以暖脾土之阳，治疗脾肾阳虚。' },
+            { name: '培土生金法', princ: '虚则补其母', details: '健脾气以补肺气', path: '土生金', reason: '用于脾胃虚弱，运化精微不足导致肺气亏虚。' },
+            { name: '金水相生法', princ: '虚则补其母', details: '滋补肺肾之阴', path: '金生水', reason: '用于肺肾阴虚、津液亏虚证。' },
+            { name: '抑木扶土法', princ: '抑强扶弱', details: '疏肝理气配合健脾', path: '木克土', reason: '又称疏肝健脾，用于治疗肝气犯脾、肝脾不和证。' },
+            { name: '培土制水法', princ: '抑强扶弱', details: '温运脾阳以利水消肿', path: '土克水', reason: '主要用于脾虚不能克制水湿，导致水湿泛滥之证。' },
+            { name: '佐金平木法', princ: '抑强扶弱', details: '清泻肝火以辅助肺气肃降', path: '金克木', reason: '又称清肺泻肝，用于治疗肝火犯肺、肺失肃降之证。' },
+            { name: '泻南补北法', princ: '抑强扶弱', details: '泻心火而滋肾水', path: '水克火', reason: '又称交通心肾，常用于心火偏旺、肾水不足的心肾不交证。' }
+          ];
+
+          const therapy = therapies[Math.floor(Math.random() * therapies.length)];
+          const isQTypeDesc = Math.random() > 0.5;
+
+          if (isQTypeDesc) {
+            const question = `中医治法中，“${therapy.name}”的临床含义及所针对的脏腑调理是（ ）`;
+            const options = [therapy.details];
+            
+            const otherTherapies = therapies.filter(t => t.name !== therapy.name);
+            otherTherapies.sort(() => Math.random() - 0.5);
+            for(let i=0; i<3; i++) {
+              options.push(otherTherapies[i].details);
+            }
+            const shuffled = this.shuffle(options, therapy.details);
+            const explanation = `“${therapy.name}”属于五行${therapy.path.includes('生') ? '相生' : '相克'}治法（治疗原则为“${therapy.princ}”），具体指“${therapy.details}”。【临床应用】：${therapy.reason}`;
+
+            return {
+              id: `dyn_u4_a_${therapy.name.replace(/[\u4e00-\u9fa5]/g, c => c.charCodeAt(0))}_${Date.now()}`,
+              unit: 4,
+              question,
+              options: shuffled.options,
+              answer: shuffled.answer,
+              explanation
+            };
+          } else {
+            const question = `临床常用治法“${therapy.name}”所依据的五行规律以及治疗原则是（ ）`;
+            const answerStr = `依据“${therapy.path}”关系，体现“${therapy.princ}”原则`;
+            const options = [answerStr];
+            
+            const otherTherapies = therapies.filter(t => t.name !== therapy.name);
+            otherTherapies.sort(() => Math.random() - 0.5);
+            for(let i=0; i<3; i++) {
+              options.push(`依据“${otherTherapies[i].path}”关系，体现“${otherTherapies[i].princ}”原则`);
+            }
+            const shuffled = this.shuffle(options, answerStr);
+            const explanation = `“${therapy.name}”（指${therapy.details}）依据的是【${therapy.path}】关系，体现了【${therapy.princ}】的治疗方法。【临床应用】：${therapy.reason}`;
+
+            return {
+              id: `dyn_u4_b_${therapy.name.replace(/[\u4e00-\u9fa5]/g, c => c.charCodeAt(0))}_${Date.now()}`,
+              unit: 4,
+              question,
+              options: shuffled.options,
+              answer: shuffled.answer,
+              explanation
+            };
+          }
+        }
+      }
+    };
+
+    // ==========================================
+    // 4. LOCAL STORAGE & STATS MANAGER
+    // ==========================================
+    const StorageManager = {
+      STATS_KEY: 'wuxing_stats_v1',
+      MISSED_KEY: 'wuxing_missed_v1',
+      PROGRESS_KEY: 'wuxing_progress_v1',
+
+      getStats() {
+        const data = localStorage.getItem(this.STATS_KEY);
+        return data ? JSON.parse(data) : { totalPracticed: 0, correctFirstTry: 0, currentStreak: 0, highestStreak: 0 };
+      },
+
+      saveStats(stats) {
+        localStorage.setItem(this.STATS_KEY, JSON.stringify(stats));
+        this.updateStatsUI();
+      },
+
+      getMissedQuestions() {
+        const data = localStorage.getItem(this.MISSED_KEY);
+        return data ? JSON.parse(data) : [];
+      },
+
+      saveMissedQuestion(q) {
+        let missed = this.getMissedQuestions();
+        if (!missed.some(item => item.id === q.id)) {
+          // Remove unique timestamps to keep question deduplicated
+          const staticQ = { ...q, id: q.id.replace(/_\d+$/, '') };
+          missed.push(staticQ);
+          localStorage.setItem(this.MISSED_KEY, JSON.stringify(missed));
+        }
+        this.updateMissedUnitCard();
+      },
+
+      removeMissedQuestion(qId) {
+        let missed = this.getMissedQuestions();
+        // Match base ID (ignoring dynamic timestamp)
+        const baseId = qId.replace(/_\d+$/, '');
+        missed = missed.filter(item => item.id.replace(/_\d+$/, '') !== baseId);
+        localStorage.setItem(this.MISSED_KEY, JSON.stringify(missed));
+        this.updateMissedUnitCard();
+      },
+
+      getProgress() {
+        const data = localStorage.getItem(this.PROGRESS_KEY);
+        return data ? JSON.parse(data) : { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      },
+
+      saveProgress(unit, pct) {
+        const prog = this.getProgress();
+        // Only increase progress, don't decrease
+        if (pct > (prog[unit] || 0)) {
+          prog[unit] = pct;
+          localStorage.setItem(this.PROGRESS_KEY, JSON.stringify(prog));
+        }
+        this.updateProgressUI();
+      },
+
+      updateProgressUI() {
+        const prog = this.getProgress();
+        for (let unit = 1; unit <= 5; unit++) {
+          const ring = document.getElementById(`ring-u${unit}`);
+          const text = document.getElementById(`text-ring-u${unit}`);
+          if (ring && text) {
+            const pct = prog[unit] || 0;
+            // Radius of circle is 18. Circumference is 2 * PI * 18 = 113.1
+            const offset = 113.1 - (pct / 100) * 113.1;
+            ring.style.strokeDashoffset = offset;
+            text.textContent = `${pct}%`;
+          }
+        }
+      },
+
+      updateStatsUI() {
+        const stats = this.getStats();
+        document.getElementById('stat-total-practiced').textContent = stats.totalPracticed;
+        document.getElementById('stat-streak').textContent = `${stats.currentStreak} 🔥`;
+        
+        let acc = 0;
+        if (stats.totalPracticed > 0) {
+          acc = Math.round((stats.correctFirstTry / stats.totalPracticed) * 100);
+        }
+        document.getElementById('stat-accuracy').textContent = `${acc}%`;
+      },
+
+      updateMissedUnitCard() {
+        const missed = this.getMissedQuestions();
+        const card = document.getElementById('missed-unit-card');
+        const desc = document.getElementById('missed-count-desc');
+        
+        if (missed.length > 0) {
+          card.style.display = 'flex';
+          desc.textContent = `包含 ${missed.length} 道做错的问题，答对即可完美消除。`;
+        } else {
+          card.style.display = 'none';
+        }
+      }
+    };
+
+    // ==========================================
+    // 5. PRACTICE SESSION STATE CONTROLLER
+    // ==========================================
+    const SessionController = {
+      activeScreen: 'dashboard-screen',
+      currentUnit: null,
+      activeQueue: [], // Duolingo style active question queue
+      originalLength: 0,
+      correctCount: 0, // correctly answered on first try (for progress bar and stats)
+      currentAnswersState: {}, // mapping question ID -> boolean (correct on first attempt)
+      selectedOptionIndex: null,
+      sessionCorrectFirstTry: 0,
+      sessionTotalAnswered: 0,
+      startTime: null,
+
+      init() {
+        // SVG Clicks
+        const svg = document.getElementById('wuxing-svg');
+        const nodes = svg.querySelectorAll('.node-group');
+        nodes.forEach(node => {
+          node.addEventListener('click', (e) => {
+            const el = node.getAttribute('data-element');
+            SoundEngine.playClick();
+            this.highlightElement(el);
+          });
+        });
+
+        // Unit Card Selection
+        const cards = document.querySelectorAll('.unit-card');
+        cards.forEach(card => {
+          card.addEventListener('click', () => {
+            const unit = parseInt(card.getAttribute('data-unit'));
+            SoundEngine.playClick();
+            this.startPractice(unit);
+          });
+        });
+
+        // Answer Option Buttons Event Delegation
+        const optionsList = document.getElementById('active-options-list');
+        optionsList.addEventListener('click', (e) => {
+          const btn = e.target.closest('.option-btn');
+          if (!btn) return;
+          
+          // If already checked, disable selecting new option
+          if (document.getElementById('feedback-sliding-panel').classList.contains('active')) {
+            return;
+          }
+
+          SoundEngine.playClick();
+          
+          // Clear current selection
+          optionsList.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          
+          this.selectedOptionIndex = parseInt(btn.getAttribute('data-index'));
+          document.getElementById('footer-check-btn').disabled = false;
+        });
+
+        // Keyboard support A, B, C, D
+        window.addEventListener('keydown', (e) => {
+          if (this.activeScreen !== 'practice-screen') return;
+          
+          const slidingPanel = document.getElementById('feedback-sliding-panel');
+          const isPanelActive = slidingPanel.classList.contains('active');
+          
+          if (isPanelActive) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              document.getElementById('feedback-continue-btn').click();
+            }
+          } else {
+            const key = e.key.toUpperCase();
+            const keyMap = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
+            if (key in keyMap) {
+              const idx = keyMap[key];
+              const btn = optionsList.querySelector(`.option-btn[data-index="${idx}"]`);
+              if (btn) {
+                btn.click();
+              }
+            } else if (e.key === 'Enter') {
+              const checkBtn = document.getElementById('footer-check-btn');
+              if (!checkBtn.disabled) {
+                checkBtn.click();
+              }
+            }
+          }
+        });
+
+        // Action Check / Continue Buttons
+        document.getElementById('footer-check-btn').addEventListener('click', () => {
+          this.checkSelectedAnswer();
+        });
+
+        document.getElementById('feedback-continue-btn').addEventListener('click', () => {
+          this.proceedNext();
+        });
+
+        // Close practice buttons
+        document.getElementById('practice-close-btn').addEventListener('click', () => {
+          document.getElementById('exit-confirm-dialog').classList.add('active');
+        });
+
+        document.getElementById('btn-exit-cancel').addEventListener('click', () => {
+          document.getElementById('exit-confirm-dialog').classList.remove('active');
+        });
+
+        document.getElementById('btn-exit-confirm').addEventListener('click', () => {
+          document.getElementById('exit-confirm-dialog').classList.remove('active');
+          this.switchScreen('dashboard-screen');
+        });
+
+        // Finish panel
+        document.getElementById('btn-comp-finish').addEventListener('click', () => {
+          SoundEngine.playClick();
+          this.switchScreen('dashboard-screen');
+        });
+
+        // Sound Toggle
+        const soundBtn = document.getElementById('sound-toggle-btn');
+        soundBtn.addEventListener('click', () => {
+          SoundEngine.enabled = !SoundEngine.enabled;
+          soundBtn.textContent = SoundEngine.enabled ? '🔊' : '🔇';
+          soundBtn.style.color = SoundEngine.enabled ? 'var(--text-secondary)' : 'var(--text-muted)';
+        });
+
+        // Init local storage rendering
+        StorageManager.updateProgressUI();
+        StorageManager.updateStatsUI();
+        StorageManager.updateMissedUnitCard();
+      },
+
+      switchScreen(screenId) {
+        this.activeScreen = screenId;
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        
+        // Header visibility
+        const mainHeader = document.getElementById('main-header');
+        if (screenId === 'dashboard-screen') {
+          mainHeader.style.display = 'block';
+          StorageManager.updateMissedUnitCard();
+          StorageManager.updateStatsUI();
+        } else {
+          mainHeader.style.display = 'none';
+        }
+      },
+
+      // Highlighting SVG flows and updating properties panel
+      highlightElement(elKey) {
+        const svg = document.getElementById('wuxing-svg');
+        
+        // Reset all classes
+        svg.querySelectorAll('.node-group').forEach(n => {
+          n.className.baseVal = 'node-group';
+        });
+        svg.querySelectorAll('path').forEach(p => {
+          if (p.id.startsWith('path-sheng-') || p.id.startsWith('path-ke-')) {
+            p.className.baseVal = '';
+          }
+        });
+
+        if (!elKey) return;
+
+        // Activate node
+        const activeNode = document.getElementById(`node-${elKey}`);
+        if (activeNode) {
+          activeNode.className.baseVal = `node-group node-active-${elKey}`;
+        }
+
+        // Activate flows of this element
+        // Order: wood -> fire -> earth -> metal -> water -> wood
+        const elOrder = ['wood', 'fire', 'earth', 'metal', 'water'];
+        const idx = elOrder.indexOf(elKey);
+        
+        // Sheng (Generation): this -> next
+        const nextEl = elOrder[(idx + 1) % 5];
+        const shengPath = document.getElementById(`path-sheng-${elKey}-${nextEl}`);
+        if (shengPath) {
+          shengPath.className.baseVal = 'path-active-sheng';
+        }
+
+        // Ke (Restriction): this -> next+2
+        const keTargetEl = elOrder[(idx + 2) % 5];
+        const kePath = document.getElementById(`path-ke-${elKey}-${keTargetEl}`);
+        if (kePath) {
+          kePath.className.baseVal = 'path-active-ke';
+        }
+
+        // Render properties panel
+        const elData = WUXING_DATA[elKey];
+        document.getElementById('attr-empty-prompt').style.display = 'none';
+        
+        const content = document.getElementById('attr-content');
+        content.style.display = 'block';
+        
+        // Colors & labels
+        const indicator = document.getElementById('attr-element-indicator');
+        const colorVar = `var(--color-${elKey})`;
+        indicator.style.color = colorVar;
+        indicator.style.background = colorVar;
+        
+        document.getElementById('attr-title').textContent = `五行之【${elData.name}】属性与关系归类`;
+        document.getElementById('val-zang').textContent = elData.zang;
+        document.getElementById('val-fu').textContent = elData.fu;
+        document.getElementById('val-sense').textContent = elData.sense;
+        document.getElementById('val-tissue').textContent = elData.tissue;
+        document.getElementById('val-manifest').textContent = elData.manifest;
+        document.getElementById('val-emotion').textContent = elData.emotion;
+        document.getElementById('val-fluid').textContent = elData.fluid;
+        document.getElementById('val-season').textContent = elData.season;
+        document.getElementById('val-direction').textContent = elData.direction;
+        document.getElementById('val-qi').textContent = elData.qi;
+        document.getElementById('val-color').textContent = elData.color;
+        document.getElementById('val-taste').textContent = elData.taste;
+
+        // Rel description texts
+        const motherEl = WUXING_DATA[elOrder[(idx + 4) % 5]].name;
+        const childEl = WUXING_DATA[elOrder[(idx + 1) % 5]].name;
+        const restrictedByEl = WUXING_DATA[elOrder[(idx + 3) % 5]].name;
+        const restrictsEl = WUXING_DATA[elOrder[(idx + 2) % 5]].name;
+
+        document.getElementById('desc-sheng').innerHTML = `生我者为【${motherEl}】（${motherEl}生${elData.name}），我生者为【${childEl}】（${elData.name}生${childEl}）。`;
+        document.getElementById('desc-ke').innerHTML = `克我者为【${restrictedByEl}】（${restrictedByEl}克${elData.name}），我克者为【${restrictsEl}】（${elData.name}克${restrictsEl}）。`;
+      },
+
+      // Start Practice Session
+      startPractice(unit) {
+        this.currentUnit = unit;
+        this.activeQueue = [];
+        this.correctCount = 0;
+        this.sessionCorrectFirstTry = 0;
+        this.sessionTotalAnswered = 0;
+        this.currentAnswersState = {};
+        this.selectedOptionIndex = null;
+        this.startTime = Date.now();
+
+        // Highlighting active nodes on dashboard is cleared
+        this.highlightElement(null);
+
+        // Build active queue
+        if (unit === 6) {
+          // Incorrect Questions Unit
+          const missed = StorageManager.getMissedQuestions();
+          if (missed.length === 0) {
+            alert("目前没有错题记录！");
+            this.switchScreen('dashboard-screen');
+            return;
+          }
+          // Copy missed
+          this.activeQueue = missed.map(q => ({ ...q }));
+        } else {
+          // Standard Practice (Units 1-5)
+          // Fetch 10 questions for standard units
+          const totalQ = 10;
+          for (let i = 0; i < totalQ; i++) {
+            this.activeQueue.push(QuestionGenerator.generate(unit));
+          }
+        }
+
+        this.originalLength = this.activeQueue.length;
+        this.switchScreen('practice-screen');
+        this.loadNextQuestion();
+      },
+
+      loadNextQuestion() {
+        // Reset check button and sliding panel
+        document.getElementById('footer-check-btn').disabled = true;
+        document.getElementById('footer-normal-actions').style.visibility = 'visible';
+        
+        const panel = document.getElementById('feedback-sliding-panel');
+        panel.className = 'feedback-panel';
+        panel.classList.remove('active');
+
+        if (this.activeQueue.length === 0) {
+          this.finishPractice();
+          return;
+        }
+
+        const q = this.activeQueue[0];
+        
+        // Progress bar calculations
+        // Progress reaches 100% when correctCount matches originalLength
+        const progressPct = Math.min((this.correctCount / this.originalLength) * 100, 100);
+        document.getElementById('practice-progress-bar').style.width = `${progressPct}%`;
+        
+        // Setup tag
+        let unitText = '';
+        if (this.currentUnit === 6) unitText = '错题重练场';
+        else if (this.currentUnit === 5) unitText = '五行综合大满贯';
+        else unitText = `第 ${this.currentUnit} 单元练习`;
+        
+        document.getElementById('active-question-tag').textContent = unitText;
+        document.getElementById('active-question-text').textContent = q.question;
+
+        // Render options list
+        const optionsList = document.getElementById('active-options-list');
+        optionsList.innerHTML = '';
+        
+        const keys = ['A', 'B', 'C', 'D', 'E'];
+        q.options.forEach((opt, idx) => {
+          const btn = document.createElement('button');
+          btn.className = 'option-btn';
+          btn.setAttribute('data-index', idx);
+          btn.innerHTML = `
+            <span class="option-key">${keys[idx] || ''}</span>
+            <span class="option-text">${opt}</span>
+          `;
+          optionsList.appendChild(btn);
+        });
+
+        this.selectedOptionIndex = null;
+      },
+
+      checkSelectedAnswer() {
+        const q = this.activeQueue[0];
+        const isCorrect = this.selectedOptionIndex === q.answer;
+        
+        this.sessionTotalAnswered++;
+
+        // Track first attempt logic
+        const qBaseId = q.id.replace(/_\d+$/, ''); // Strip session stamp
+        if (this.currentAnswersState[qBaseId] === undefined) {
+          this.currentAnswersState[qBaseId] = isCorrect;
+          if (isCorrect) {
+            this.sessionCorrectFirstTry++;
+          }
+        }
+
+        // Show feedback sliding panel
+        const panel = document.getElementById('feedback-sliding-panel');
+        const icon = document.getElementById('feedback-panel-icon');
+        const title = document.getElementById('feedback-panel-title');
+        const desc = document.getElementById('feedback-panel-desc');
+        
+        panel.className = 'feedback-panel active';
+        document.getElementById('footer-normal-actions').style.visibility = 'hidden';
+
+        const optionsList = document.getElementById('active-options-list');
+        const btns = optionsList.querySelectorAll('.option-btn');
+
+        if (isCorrect) {
+          // CORRECT!
+          SoundEngine.playCorrect();
+          panel.classList.add('correct');
+          icon.textContent = '✓';
+          title.textContent = '答对了！太棒了';
+          desc.textContent = q.explanation || '理解非常透彻！继续加油。';
+          
+          // Increment progress count
+          this.correctCount++;
+          
+          // Style option green
+          const correctBtn = optionsList.querySelector(`.option-btn[data-index="${q.answer}"]`);
+          if (correctBtn) {
+            correctBtn.style.borderColor = 'var(--color-correct)';
+            correctBtn.style.background = 'var(--color-correct-bg)';
+          }
+
+          // If was a missed question in review, remove it
+          if (this.currentUnit === 6) {
+            StorageManager.removeMissedQuestion(q.id);
+          }
+
+          // Advance queue (removes from top)
+          this.activeQueue.shift();
+        } else {
+          // INCORRECT!
+          SoundEngine.playIncorrect();
+          panel.classList.add('incorrect');
+          icon.textContent = '✕';
+          title.textContent = '答错了，别灰心！';
+          desc.textContent = `正确答案是：${q.options[q.answer]}。${q.explanation}`;
+          
+          // Style selected option red, correct option green
+          const wrongBtn = optionsList.querySelector(`.option-btn[data-index="${this.selectedOptionIndex}"]`);
+          if (wrongBtn) {
+            wrongBtn.style.borderColor = 'var(--color-incorrect)';
+            wrongBtn.style.background = 'var(--color-incorrect-bg)';
+          }
+          const correctBtn = optionsList.querySelector(`.option-btn[data-index="${q.answer}"]`);
+          if (correctBtn) {
+            correctBtn.style.borderColor = 'var(--color-correct)';
+          }
+
+          // Save to missed questions list persistently
+          StorageManager.saveMissedQuestion(q);
+
+          // DUOLINGO LOGIC: shift from top, push back to end of queue to retry later
+          const missedQ = this.activeQueue.shift();
+          this.activeQueue.push(missedQ);
+        }
+      },
+
+      proceedNext() {
+        SoundEngine.playClick();
+        this.loadNextQuestion();
+      },
+
+      finishPractice() {
+        // Save stats to local storage
+        const stats = StorageManager.getStats();
+        stats.totalPracticed += this.sessionTotalAnswered;
+        stats.correctFirstTry += this.sessionCorrectFirstTry;
+        
+        // Streak adjustment
+        const initialAccuracy = this.sessionTotalAnswered > 0 
+          ? (this.sessionCorrectFirstTry / this.sessionTotalAnswered) * 100 
+          : 0;
+
+        if (initialAccuracy >= 80) {
+          stats.currentStreak += 1;
+          if (stats.currentStreak > stats.highestStreak) {
+            stats.highestStreak = stats.currentStreak;
+          }
+        } else if (initialAccuracy < 40) {
+          // reset streak if accuracy is too low
+          stats.currentStreak = 0;
+        }
+        
+        StorageManager.saveStats(stats);
+
+        // Update progress rings
+        if (this.currentUnit !== 6) {
+          const finalSessionAccuracy = Math.round(initialAccuracy);
+          StorageManager.saveProgress(this.currentUnit, finalSessionAccuracy);
+        }
+
+        // Render completion screen
+        let compUnitName = '';
+        if (this.currentUnit === 6) compUnitName = '错题重练场';
+        else if (this.currentUnit === 5) compUnitName = '五行综合大考';
+        else compUnitName = `第 ${this.currentUnit} 单元练习`;
+
+        document.getElementById('val-comp-unit').textContent = compUnitName;
+        document.getElementById('val-comp-solved').textContent = `${this.sessionCorrectFirstTry} / ${this.sessionTotalAnswered} 题`;
+        document.getElementById('val-comp-accuracy').textContent = `${Math.round(initialAccuracy)}%`;
+        
+        if (initialAccuracy >= 80) {
+          document.getElementById('completion-title').textContent = '完美的练习！🔥';
+          document.getElementById('completion-subtitle').textContent = `你的初始正确率达到了 ${Math.round(initialAccuracy)}%！你已深刻掌握了五行生克的核心机制。`;
+        } else {
+          document.getElementById('completion-title').textContent = '通关成功！继续加油';
+          document.getElementById('completion-subtitle').textContent = `你已通过“错题循环重练”把队列中所有的漏洞全数解决。快返回仪表盘开启下一次练习吧！`;
+        }
+
+        this.switchScreen('completion-screen');
+      }
+    };
+
+    // Initialize application on DOM content loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      SessionController.init();
+    });
+  </script>
+</body>
+</html>

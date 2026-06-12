@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五输穴歌诀背诵大师 (奇偶全考版)</title>
+    <style>
+        :root {
+            --primary: #58cc02;
+            --primary-hover: #46a302;
+            --secondary: #1cb0f6;
+            --secondary-hover: #1899d6;
+            --error: #ff4b4b;
+            --error-light: #ffebeb;
+            --success-light: #eefbc8;
+            --bg: #f7f7f7;
+            --card-bg: #ffffff;
+            --text: #3c3c3c;
+            --text-muted: #afafaf;
+            --border: #e5e5e5;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Helvetica Neue', Arial, 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            box-shadow: 0 8px 0 var(--border);
+            overflow: hidden;
+            position: relative;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screen {
+            display: none;
+            padding: 24px;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* 进度条 */
+        .quiz-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .close-btn {
+            font-size: 24px;
+            color: var(--text-muted);
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+
+        .progress-bar-container {
+            flex-grow: 1;
+            height: 16px;
+            background-color: var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary);
+            border-radius: 8px;
+            transition: width 0.3s ease;
+        }
+
+        /* 看板与统计 */
+        .brand {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .brand h1 {
+            color: var(--primary);
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        .brand p {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .stat-card {
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-card .value {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--text);
+        }
+        .stat-card .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .menu-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            background: var(--card-bg);
+            color: var(--text);
+            text-align: left;
+            margin-bottom: 12px;
+            transition: all 0.1s ease;
+            position: relative;
+        }
+        .btn::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: -2px;
+            right: -2px;
+            height: 4px;
+            border-radius: 0 0 14px 14px;
+            background: var(--border);
+            z-index: -1;
+        }
+        .btn:active {
+            transform: translateY(4px);
+        }
+        .btn:active::after {
+            height: 0;
+        }
+
+        .btn-unit {
+            border-color: var(--secondary);
+            color: var(--secondary);
+        }
+        .btn-unit::after { background: #148cb4; }
+        
+        .btn-infinite {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .btn-infinite::after { background: #3fa202; }
+
+        .btn-wrong {
+            border-color: var(--error);
+            color: var(--error);
+        }
+        .btn-wrong::after { background: #cc3c3c; }
+        .btn-wrong:disabled {
+            border-color: var(--border);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .btn-wrong:disabled::after { background: var(--border); }
+
+        .btn-unit .subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: normal;
+            margin-top: 2px;
+        }
+
+        /* 核心卡片 */
+        .question-box {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .question-title {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .verse-card {
+            background-color: #f1f7ff;
+            border: 2px solid #cedff5;
+            padding: 24px 20px;
+            border-radius: 16px;
+            font-size: 22px;
+            font-weight: bold;
+            line-height: 1.6;
+            text-align: center;
+            color: #1849a9;
+            margin-bottom: 25px;
+            letter-spacing: 2px;
+        }
+
+        .verse-card span.masked {
+            color: var(--error);
+            background-color: #ffd6d6;
+            border-radius: 4px;
+            padding: 0 4px;
+            margin: 0 2px;
+            font-size: 20px;
+        }
+
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            background: var(--card-bg);
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text);
+            text-align: left;
+            cursor: pointer;
+            box-shadow: 0 4px 0 var(--border);
+            transition: all 0.1s ease;
+        }
+        .option-btn:active:not(.disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 var(--border);
+        }
+        .option-btn.selected {
+            border-color: var(--secondary);
+            background-color: #f0f9ff;
+            box-shadow: 0 4px 0 #1899d6;
+            color: var(--secondary);
+        }
+
+        /* 底部反馈面板 */
+        .feedback-panel {
+            margin: -24px;
+            margin-top: auto;
+            padding: 24px;
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+            border-top: 2px solid var(--border);
+        }
+        .feedback-panel.correct {
+            display: flex;
+            background-color: var(--success-light);
+            border-color: #b8e986;
+        }
+        .feedback-panel.incorrect {
+            display: flex;
+            background-color: var(--error-light);
+            border-color: #ffc4c4;
+        }
+        .feedback-status {
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .feedback-panel.correct .feedback-status { color: var(--primary-hover); }
+        .feedback-panel.incorrect .feedback-status { color: var(--error); }
+        
+        .feedback-details {
+            font-size: 14px;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .btn-next {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #3fa202;
+            text-align: center;
+        }
+        .btn-next:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #3fa202;
+        }
+        .feedback-panel.incorrect .btn-next {
+            background-color: var(--error);
+            box-shadow: 0 4px 0 #cc3c3c;
+        }
+
+        /* 结算界面 */
+        .summary-box {
+            text-align: center;
+            margin: auto 0;
+        }
+        .summary-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+        .summary-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .summary-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 40px;
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 16px;
+            border: 2px solid var(--border);
+        }
+
+        .reset-data {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 20px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <!-- 1. 主页屏幕 -->
+    <div id="home-screen" class="screen active">
+        <div class="brand">
+            <h1>五输穴歌诀背诵大师</h1>
+            <p>【奇偶分开考 • 24句全景特训版】</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 25px;">
+            <div class="stat-card">
+                <div class="value" id="stat-total">0</div>
+                <div class="label">总刷题</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="stat-accuracy">0%</div>
+                <div class="label">正确率</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="stat-wrong">0</div>
+                <div class="label">待消错题</div>
+            </div>
+        </div>
+
+        <div class="menu-title">单元冲关练习 (含奇偶句)</div>
+        <button class="btn btn-unit" onclick="startQuiz('unit1')">
+            第 1 单元：手三阴与手三阳经 (12题)
+            <div class="subtitle">肺、大肠、心、小肠、心包、三焦经的全部歌诀</div>
+        </button>
+        <button class="btn btn-unit" onclick="startQuiz('unit2')">
+            第 2 单元：足三阴与足三阳经 (12题)
+            <div class="subtitle">胃、脾、膀胱、肾、胆、肝经的全部歌诀</div>
+        </button>
+        <button class="btn btn-unit" onclick="startQuiz('unit3')">
+            第 3 单元：全十二经络大总攻 (24题)
+            <div class="subtitle">整首五输穴歌诀随机混大满贯</div>
+        </button>
+
+        <div class="menu-title" style="margin-top: 15px;">强化特训</div>
+        <button class="btn btn-infinite" onclick="startQuiz('infinite')">
+            🚀 无限刷题模式 (随机无止境)
+        </button>
+        <button id="wrong-pool-btn" class="btn btn-wrong" onclick="startQuiz('error')">
+            🔥 错题本极限消灭战
+        </button>
+
+        <div class="reset-data" onclick="resetSystemData()">重置学习统计数据</div>
+    </div>
+
+    <!-- 2. 答题屏幕 -->
+    <div id="quiz-screen" class="screen">
+        <div class="quiz-header">
+            <button class="close-btn" onclick="quitQuiz()">✕</button>
+            <div class="progress-bar-container">
+                <div id="quiz-progress" class="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="question-box">
+            <div id="question-hint" class="question-title">加载中...</div>
+            <div id="question-verse" class="verse-card">穴位加载中...</div>
+            <div id="options-container" class="options-grid"></div>
+        </div>
+
+        <!-- 反馈面板 -->
+        <div id="feedback-panel" class="feedback-panel">
+            <div id="feedback-status" class="feedback-status"></div>
+            <div id="feedback-details" class="feedback-details"></div>
+            <button id="next-btn" class="btn-next" onclick="handleNextClick()">继续</button>
+        </div>
+    </div>
+
+    <!-- 3. 结算屏幕 -->
+    <div id="summary-screen" class="screen">
+        <div class="summary-box">
+            <div class="summary-icon">🎉</div>
+            <div id="summary-title" class="summary-title">精彩！完成练习</div>
+            <div class="summary-stats">
+                <div>
+                    <div style="font-size: 24px; font-weight: bold; color: var(--primary);" id="sum-correct">0</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">答对题数</div>
+                </div>
+                <div>
+                    <div style="font-size: 24px; font-weight: bold; color: var(--secondary);" id="sum-accuracy">0%</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">本次正确率</div>
+                </div>
+            </div>
+            <button class="btn btn-infinite" style="text-align: center;" onclick="showHomeScreen()">返回主界面</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // 严格遵循用户提供的正统歌诀，拆分成24个独立的考核句
+    // text: 原始歌诀内容
+    // maskedText: 经过严格防剧透遮蔽处理的展示文本
+    // lineType: 'odd'(奇数句-前半句), 'even'(偶数句-后半句)
+    const ALL_VERSES = [
+        // 手太阴肺经
+        { id: "1-A", name: "手太阴肺经", lineType: "odd", type: "hand", text: "少商鱼际与太渊", maskedText: "少商鱼际与太渊", partner: "经渠尺泽肺相连。" },
+        { id: "1-B", name: "手太阴肺经", lineType: "even", type: "hand", text: "经渠尺泽肺相连", maskedText: "经渠尺泽<span class='masked'>〇</span>相连", partner: "少商鱼际与太渊，" },
+        
+        // 手阳明大肠经
+        { id: "2-A", name: "手阳明大肠经", lineType: "odd", type: "hand", text: "商阳二三间合谷", maskedText: "商阳二三间合谷", partner: "阳溪曲池大肠牵。" },
+        { id: "2-B", name: "手阳明大肠经", lineType: "even", type: "hand", text: "阳溪曲池大肠牵", maskedText: "阳溪曲池<span class='masked'>〇〇</span>牵", partner: "商阳二三间合谷，" },
+        
+        // 足阳明胃经
+        { id: "3-A", name: "足阳明胃经", lineType: "odd", type: "foot", text: "厉兑内庭陷谷胃", maskedText: "厉兑内庭陷谷<span class='masked'>〇</span>", partner: "冲阳解溪三里随；" },
+        { id: "3-B", name: "足阳明胃经", lineType: "even", type: "foot", text: "冲阳解溪三里随", maskedText: "冲阳解溪三里随", partner: "厉兑内庭陷谷胃，" },
+        
+        // 足太阴脾经
+        { id: "4-A", name: "足太阴脾经", lineType: "odd", type: "foot", text: "隐白大都太白脾", maskedText: "隐白大都太白<span class='masked'>〇</span>", partner: "商丘阴陵泉要知。" },
+        { id: "4-B", name: "足太阴脾经", lineType: "even", type: "foot", text: "商丘阴陵泉要知", maskedText: "商丘阴陵泉要知", partner: "隐白大都太白脾，" },
+        
+        // 手少阴心经
+        { id: "5-A", name: "手少阴心经", lineType: "odd", type: "hand", text: "少冲少府属于心", maskedText: "少冲少府属于<span class='masked'>〇</span>", partner: "神门灵道少海寻；" },
+        { id: "5-B", name: "手少阴心经", lineType: "even", type: "hand", text: "神门灵道少海寻", maskedText: "神门灵道少海寻", partner: "少冲少府属于心，" },
+        
+        // 手太阳小肠经
+        { id: "6-A", name: "手太阳小肠经", lineType: "odd", type: "hand", text: "少泽前谷后溪腕", maskedText: "少泽前谷后溪腕", partner: "阳谷少海小肠经。" },
+        { id: "6-B", name: "手太阳小肠经", lineType: "even", type: "hand", text: "阳谷少海小肠经", maskedText: "阳谷少海<span class='masked'>〇〇</span>经", partner: "少泽前谷后溪腕，" },
+        
+        // 足太阳膀胱经
+        { id: "7-A", name: "足太阳膀胱经", lineType: "odd", type: "foot", text: "至阴通谷束京骨", maskedText: "至阴通谷束京骨", partner: "昆仑委中膀胱知；" },
+        { id: "7-B", name: "足太阳膀胱经", lineType: "even", type: "foot", text: "昆仑委中膀胱知", maskedText: "昆仑委中<span class='masked'>〇〇</span>知", partner: "至阴通谷束京骨，" },
+        
+        // 足少阴肾经
+        { id: "8-A", name: "足少阴肾经", lineType: "odd", type: "foot", text: "涌泉然谷与太溪", maskedText: "涌泉然谷与太溪", partner: "复溜阴谷肾所宜。" },
+        { id: "8-B", name: "足少阴肾经", lineType: "even", type: "foot", text: "复溜阴谷肾所宜", maskedText: "复溜阴谷<span class='masked'>〇</span>所宜", partner: "涌泉然谷与太溪，" },
+        
+        // 手厥阴心包经
+        { id: "9-A", name: "手厥阴心包经", lineType: "odd", type: "hand", text: "中冲劳宫心包络", maskedText: "中冲劳宫<span class='masked'>〇〇〇</span>", partner: "大陵间使传曲泽；" },
+        { id: "9-B", name: "手厥阴心包经", lineType: "even", type: "hand", text: "大陵间使传曲泽", maskedText: "大陵间使传曲泽", partner: "中冲劳宫心包络，" },
+        
+        // 手少阳三焦经
+        { id: "10-A", name: "手少阳三焦经", lineType: "odd", type: "hand", text: "关冲液门中渚焦", maskedText: "关冲液门中渚<span class='masked'>〇</span>", partner: "阳池支沟天井索。" },
+        { id: "10-B", name: "手少阳三焦经", lineType: "even", type: "hand", text: "阳池支沟天井索", maskedText: "阳池支沟天井索", partner: "关冲液门中渚焦，" },
+        
+        // 足少阳胆经
+        { id: "11-A", name: "足少阳胆经", lineType: "odd", type: "foot", text: "窍阴侠溪临泣胆", maskedText: "窍阴侠溪临泣<span class='masked'>〇</span>", partner: "丘墟阳辅阳陵泉；" },
+        { id: "11-B", name: "足少阳胆经", lineType: "even", type: "foot", text: "丘墟阳辅阳陵泉", maskedText: "丘墟阳辅阳陵泉", partner: "窍阴侠溪临泣胆，" },
+        
+        // 足厥阴肝经
+        { id: "12-A", name: "足厥阴肝经", lineType: "odd", type: "foot", text: "大敦行间太冲看", maskedText: "大敦行间太冲看", partner: "中封曲泉属于肝。" },
+        { id: "12-B", name: "足厥阴肝经", lineType: "even", type: "foot", text: "中封曲泉属于肝", maskedText: "中封曲泉属于<span class='masked'>〇</span>", partner: "大敦行间太冲看，" }
+    ];
+
+    let userStats = {
+        totalAnswered: 0,
+        correctCount: 0,
+        wrongIds: [] 
+    };
+
+    let quizState = {
+        mode: '', 
+        questions: [],
+        currentIndex: 0,
+        correctInRound: 0,
+        hasAnswered: false,
+        selectedAnswer: null
+    };
+
+    window.onload = function() {
+        loadDataFromStorage();
+        updateDashboard();
+    };
+
+    function loadDataFromStorage() {
+        const saved = localStorage.getItem('wushuxue_all_lines_stats');
+        if (saved) {
+            try {
+                userStats = JSON.parse(saved);
+                if (!Array.isArray(userStats.wrongIds)) userStats.wrongIds = [];
+            } catch (e) {
+                console.error("加载档案失败");
+            }
+        }
+    }
+
+    function saveDataToStorage() {
+        localStorage.setItem('wushuxue_all_lines_stats', JSON.stringify(userStats));
+    }
+
+    function updateDashboard() {
+        document.getElementById('stat-total').innerText = userStats.totalAnswered;
+        const acc = userStats.totalAnswered > 0 ? Math.round((userStats.correctCount / userStats.totalAnswered) * 100) : 0;
+        document.getElementById('stat-accuracy').innerText = acc + '%';
+        document.getElementById('stat-wrong').innerText = userStats.wrongIds.length;
+
+        const wrongBtn = document.getElementById('wrong-pool-btn');
+        if (userStats.wrongIds.length === 0) {
+            wrongBtn.disabled = true;
+            wrongBtn.innerText = "🔒 错题本暂无错题";
+        } else {
+            wrongBtn.disabled = false;
+            wrongBtn.innerText = `🔥 错题本消灭特训 (${userStats.wrongIds.length})`;
+        }
+    }
+
+    function startQuiz(mode) {
+        quizState.mode = mode;
+        quizState.currentIndex = 0;
+        quizState.correctInRound = 0;
+        quizState.hasAnswered = false;
+
+        if (mode === 'unit1') {
+            quizState.questions = ALL_VERSES.filter(v => v.type === 'hand');
+            shuffleArray(quizState.questions);
+        } else if (mode === 'unit2') {
+            quizState.questions = ALL_VERSES.filter(v => v.type === 'foot');
+            shuffleArray(quizState.questions);
+        } else if (mode === 'unit3') {
+            quizState.questions = [...ALL_VERSES];
+            shuffleArray(quizState.questions);
+        } else if (mode === 'infinite') {
+            quizState.questions = [...ALL_VERSES];
+            shuffleArray(quizState.questions);
+        } else if (mode === 'error') {
+            quizState.questions = ALL_VERSES.filter(v => userStats.wrongIds.includes(v.id));
+            shuffleArray(quizState.questions);
+        }
+
+        if (quizState.questions.length === 0) return;
+
+        switchScreen('quiz-screen');
+        renderCurrentQuestion();
+    }
+
+    function renderCurrentQuestion() {
+        quizState.hasAnswered = false;
+        document.getElementById('feedback-panel').className = 'feedback-panel';
+        
+        const progressPercent = quizState.mode === 'infinite' ? 
+            ((quizState.currentIndex % 10) / 10) * 100 : 
+            (quizState.currentIndex / quizState.questions.length) * 100;
+        document.getElementById('quiz-progress').style.width = `${progressPercent}%`;
+
+        const currentQ = quizState.questions[quizState.currentIndex];
+        
+        // 动态题目标签提示
+        const lineName = currentQ.lineType === 'odd' ? '【前半句 • 核心经穴】' : '【后半句 • 顺接归经】';
+        document.getElementById('question-hint').innerText = `请辨认以下歌诀 ${lineName} 隶属哪条经络？`;
+        document.getElementById('question-verse').innerHTML = currentQ.maskedText;
+
+        // 生成干扰选项
+        const options = [currentQ.name];
+        const uniqueNames = [...new Set(ALL_VERSES.map(v => v.name))];
+        const otherOptions = uniqueNames.filter(n => n !== currentQ.name);
+        shuffleArray(otherOptions);
+        for (let i = 0; i < 3; i++) {
+            options.push(otherOptions[i]);
+        }
+        shuffleArray(options);
+
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => selectOption(btn, opt);
+            container.appendChild(btn);
+        });
+    }
+
+    function selectOption(btnElement, value) {
+        if (quizState.hasAnswered) return;
+
+        const allButtons = document.querySelectorAll('.option-btn');
+        allButtons.forEach(b => b.classList.remove('selected'));
+        btnElement.classList.add('selected');
+
+        quizState.hasAnswered = true;
+        quizState.selectedAnswer = value;
+        allButtons.forEach(b => b.classList.add('disabled'));
+
+        const currentQ = quizState.questions[quizState.currentIndex];
+        const isCorrect = (value === currentQ.name);
+        
+        userStats.totalAnswered++;
+
+        const feedbackPanel = document.getElementById('feedback-panel');
+        const statusText = document.getElementById('feedback-status');
+        const detailsText = document.getElementById('feedback-details');
+
+        // 构建上下句完整拼合展示
+        let pairedVerse = currentQ.lineType === 'odd' ? 
+            `<strong>${currentQ.text}</strong>，${currentQ.partner}` : 
+            `${currentQ.partner}<strong>${currentQ.text}</strong>。`;
+
+        if (isCorrect) {
+            quizState.correctInRound++;
+            userStats.correctCount++;
+            feedbackPanel.className = 'feedback-panel correct';
+            statusText.innerHTML = '🟢 正确！脉络清晰';
+            detailsText.innerHTML = `标准整联歌诀对照：<br>${pairedVerse}`;
+            
+            if (quizState.mode === 'error') {
+                userStats.wrongIds = userStats.wrongIds.filter(id => id !== currentQ.id);
+            }
+        } else {
+            feedbackPanel.className = 'feedback-panel incorrect';
+            statusText.innerHTML = '🔴 错误！落入盲区';
+            detailsText.innerHTML = `正确答案是：<strong>${currentQ.name}</strong><br>标准整联歌诀对照：<br>${pairedVerse}`;
+            
+            if (!userStats.wrongIds.includes(currentQ.id)) {
+                userStats.wrongIds.push(currentQ.id);
+            }
+        }
+
+        saveDataToStorage();
+    }
+
+    function handleNextClick() {
+        quizState.currentIndex++;
+
+        if (quizState.mode === 'infinite') {
+            if (quizState.currentIndex >= quizState.questions.length) {
+                shuffleArray(quizState.questions);
+                quizState.currentIndex = 0;
+            }
+            renderCurrentQuestion();
+        } else {
+            if (quizState.currentIndex >= quizState.questions.length) {
+                showSummaryScreen();
+            } else {
+                renderCurrentQuestion();
+            }
+        }
+    }
+
+    function showSummaryScreen() {
+        switchScreen('summary-screen');
+        document.getElementById('sum-correct').innerText = quizState.correctInRound;
+        const acc = quizState.questions.length > 0 ? Math.round((quizState.correctInRound / quizState.questions.length) * 100) : 0;
+        document.getElementById('sum-accuracy').innerText = acc + '%';
+        
+        if (acc === 100) {
+            document.getElementById('summary-title').innerText = "🥇 绝伦！24句全盘通关！";
+        } else if (acc >= 60) {
+            document.getElementById('summary-title').innerText = "🎉 挑战成功，错题已妥善收录";
+        } else {
+            document.getElementById('summary-title').innerText = "💪 奇偶变换有些混淆，快去错题本强化";
+        }
+        updateDashboard();
+    }
+
+    function showHomeScreen() {
+        switchScreen('home-screen');
+        updateDashboard();
+    }
+
+    function quitQuiz() {
+        if (confirm('确定要放弃当前进度的练习吗？')) {
+            showHomeScreen();
+        }
+    }
+
+    function resetSystemData() {
+        if (confirm('确定要清空累计刷题数据以及错题库吗？')) {
+            userStats = { totalAnswered: 0, correctCount: 0, wrongIds: [] };
+            saveDataToStorage();
+            updateDashboard();
+        }
+    }
+
+    function switchScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+</script>
+
+</body>
+</html>
